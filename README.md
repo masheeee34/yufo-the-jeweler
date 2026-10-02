@@ -7,7 +7,7 @@ Storefront and ordering platform for **YUFO**, a studio that sculpts custom jewe
 ## Features
 
 - **Catalog and collections** with product pages and a cart
-- **Bespoke configurator**: a step-by-step brief for one-of-one custom pieces
+- **Bespoke configurator**: an animated step-by-step brief (piece type, vision, budget and delivery sliders) for one-of-one custom pieces, gated behind Discord login
 - **Discord login** and customer account
 - **Checkout through Discord**: each order opens a private checkout channel on the YUFO server, handled by a bot
 - **Admin area**: products, custom requests and customer reviews
