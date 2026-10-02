@@ -6,9 +6,10 @@ import Image from 'next/image';
 import { useAuth } from '../lib/authContext';
 import { useCart } from '../lib/cartContext';
 import { SearchOverlay } from './SearchOverlay';
+import { UserMenu } from './UserMenu';
+import { DISCORD_INVITE } from './CustomProjectWizard';
 import {
   IconSearch,
-  IconUser,
   IconShoppingBag,
   IconX,
   IconPlus,
@@ -122,7 +123,7 @@ export const AlexMossHeader: React.FC<AlexMossHeaderProps> = ({
           <div className="flex items-center gap-4 sm:gap-6 text-[#999999]">
             {/* Discord Atelier Lounge */}
             <a
-              href="https://discord.gg"
+              href={DISCORD_INVITE}
               target="_blank"
               rel="noreferrer"
               className="hidden sm:flex items-center gap-2 hover:text-white transition-all cursor-pointer group"
@@ -161,17 +162,8 @@ export const AlexMossHeader: React.FC<AlexMossHeaderProps> = ({
               )}
             </button>
 
-            {/* Account Portal Button */}
-            <button
-              onClick={onOpenAccount}
-              className="relative hover:text-white transition-all p-1 cursor-pointer flex items-center gap-1.5"
-              aria-label="Collector Account Portal"
-            >
-              <IconUser size={18} stroke={1.5} />
-              {user && (
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-              )}
-            </button>
+            {/* Account: Discord avatar + menu */}
+            <UserMenu onOpenAccount={onOpenAccount} />
           </div>
 
         </nav>
@@ -393,7 +385,7 @@ export const AlexMossHeader: React.FC<AlexMossHeaderProps> = ({
                 Timepieces
               </Link>
               <a
-                href="https://discord.gg"
+                href={DISCORD_INVITE}
                 target="_blank"
                 rel="noreferrer"
                 className="block text-[#888888] hover:text-white"

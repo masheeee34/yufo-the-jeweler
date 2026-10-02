@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuth } from '../../lib/authContext';
@@ -8,6 +8,7 @@ import { CartProvider } from '../../lib/cartContext';
 import { AuthProvider } from '../../lib/authContext';
 import { AlexMossHeader } from '../../components/AlexMossHeader';
 import { AlexMossChat } from '../../components/AlexMossChat';
+import { UserAvatar } from '../../components/UserMenu';
 import {
   User,
   Mail,
@@ -29,6 +30,12 @@ function AccountPageContent() {
 
   // Tab when logged in: 'overview' | 'commissions' | 'settings'
   const [activeTab, setActiveTab] = useState<'overview' | 'commissions' | 'settings'>('overview');
+
+  // Ouvre directement l'onglet demandé depuis le menu du compte (/account?tab=settings)
+  useEffect(() => {
+    const tab = new URLSearchParams(window.location.search).get('tab');
+    if (tab === 'commissions' || tab === 'settings' || tab === 'overview') setActiveTab(tab);
+  }, []);
 
   // Auth form state when logged out
   const [authMode, setAuthMode] = useState<'signin' | 'signup'>('signin');
@@ -129,9 +136,7 @@ function AccountPageContent() {
             {/* Profile Hero Header */}
             <div className="p-6 sm:p-8 bg-zinc-950 border border-white/10 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-6">
               <div className="flex items-center gap-4">
-                <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-2xl font-semibold text-white">
-                  {user.pseudo.charAt(0).toUpperCase()}
-                </div>
+                <UserAvatar user={user} size={64} className="border border-white/10" />
                 <div>
                   <div className="flex items-center gap-3">
                     <h1 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">
