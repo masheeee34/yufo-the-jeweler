@@ -7,8 +7,6 @@ import {
   IconSend,
   IconClock,
   IconCheck,
-  IconRefresh,
-  IconLogout,
   IconSearch,
   IconMessageCircle,
   IconAlertCircle,
@@ -23,7 +21,9 @@ import {
   IconChecklist,
   IconEye,
   IconExternalLink,
+  IconMenu2,
 } from '@tabler/icons-react';
+import { AdminSidebar } from '@/components/AdminSidebar';
 import { ReviewItem } from '@/lib/reviewsDb';
 import { Product, ProductCategory, ProductCollection, CATEGORIES_NAV, COLLECTIONS_NAV, YUFO_PRODUCTS } from '@/lib/products';
 
@@ -118,6 +118,7 @@ export default function AdminPage() {
 
   // Onglet Actif : 'products' | 'requests' | 'reviews'
   const [activeTab, setActiveTab] = useState<'products' | 'requests' | 'reviews'>('products');
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
   // --- CATALOGUE & ARTICLES ---
   const [products, setProducts] = useState<Product[]>([]);
@@ -638,112 +639,47 @@ export default function AdminPage() {
   // ==========================================
   // 2. DASHBOARD ADMIN COMPLET
   // ==========================================
+  const refreshAll = () => {
+    const token = sessionStorage.getItem('yufo_admin_token') || 'yufo2026';
+    fetchProducts(token);
+    fetchRequests(token);
+    fetchReviews(token);
+  };
+
   return (
-    <div className="min-h-screen w-full bg-[#070709] text-white flex flex-col selection:bg-white selection:text-black font-sans">
-      {/* Top Header Admin — Exact Alex Moss Style */}
-      <header className="sticky top-0 z-40 h-16 sm:h-20 px-5 sm:px-10 lg:px-14 border-b border-[#16161d] bg-[#070709]/95 backdrop-blur-md flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <span className="text-base sm:text-lg tracking-[0.2em] uppercase font-normal text-white">
-            YUFO THE JEWELER
-          </span>
-          <span className="hidden sm:inline-block text-[11px] uppercase tracking-[0.15em] text-zinc-500 font-medium px-2.5 py-1 rounded-full bg-white/5 border border-white/10">
-            Atelier Panel
-          </span>
+    <div className="h-dvh w-full bg-[#0c0c0d] text-white flex lg:gap-3 lg:p-3 selection:bg-white selection:text-black font-sans">
+      <AdminSidebar
+        activeTab={activeTab}
+        onSelectTab={setActiveTab}
+        productCount={products.length}
+        pendingCount={pendingCount}
+        reviewCount={reviews.length}
+        onAddProduct={openAddProductModal}
+        onRefresh={refreshAll}
+        refreshing={productsLoading || loading || reviewsLoading}
+        onLogout={handleLogout}
+        mobileOpen={mobileNavOpen}
+        onCloseMobile={() => setMobileNavOpen(false)}
+      />
+
+      <section className="flex-1 min-w-0 flex flex-col bg-[#141414] lg:rounded-[20px] lg:border border-white/[0.05] overflow-hidden">
+        {/* Barre du haut (mobile) */}
+        <div className="lg:hidden h-16 shrink-0 px-4 flex items-center gap-3 border-b border-white/[0.06]">
+          <button
+            onClick={() => setMobileNavOpen(true)}
+            className="w-10 h-10 rounded-[10px] hover:bg-white/10 flex items-center justify-center text-zinc-300"
+            aria-label="Ouvrir le menu"
+          >
+            <IconMenu2 size={20} />
+          </button>
+          <span className="w-8 h-8 rounded-[8px] bg-white text-zinc-950 flex items-center justify-center text-sm font-bold">Y</span>
+          <span className="text-[16px] font-semibold flex-1">YUFO Atelier</span>
+          {pendingCount > 0 && (
+            <button onClick={() => setActiveTab('requests')} className="h-7 px-2.5 rounded-full bg-amber-400 text-black text-[11px] font-bold">
+              {pendingCount} en attente
+            </button>
+          )}
         </div>
-
-        {/* Onglets de navigation principale */}
-        <nav className="flex items-center gap-2 sm:gap-3 text-xs">
-          <button
-            onClick={() => setActiveTab('products')}
-            className={`flex items-center gap-2 px-4 h-10 rounded-full transition-all cursor-pointer ${
-              activeTab === 'products'
-                ? 'bg-white text-zinc-950 font-semibold shadow-lg'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <IconShoppingBag size={15} />
-            <span className="hidden sm:inline">Collections & Articles</span>
-            <span className="sm:hidden">Articles</span>
-            <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                activeTab === 'products' ? 'bg-zinc-950 text-white' : 'bg-white/10 text-zinc-300'
-              }`}
-            >
-              {products.length}
-            </span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('requests')}
-            className={`flex items-center gap-2 px-4 h-10 rounded-full transition-all cursor-pointer ${
-              activeTab === 'requests'
-                ? 'bg-white text-zinc-950 font-semibold shadow-lg'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <IconMessageCircle size={15} />
-            <span className="hidden sm:inline">Demandes (72h)</span>
-            <span className="sm:hidden">Demandes</span>
-            {pendingCount > 0 && (
-              <span
-                className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  activeTab === 'requests' ? 'bg-amber-400 text-black' : 'bg-amber-500/20 text-amber-300'
-                }`}
-              >
-                {pendingCount}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('reviews')}
-            className={`flex items-center gap-2 px-4 h-10 rounded-full transition-all cursor-pointer ${
-              activeTab === 'reviews'
-                ? 'bg-white text-zinc-950 font-semibold shadow-lg'
-                : 'text-zinc-400 hover:text-white hover:bg-white/5 font-medium'
-            }`}
-          >
-            <IconStar size={15} />
-            <span className="hidden sm:inline">Avis Discord</span>
-            <span className="sm:hidden">Avis</span>
-            <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-                activeTab === 'reviews' ? 'bg-[#5865F2] text-white' : 'bg-white/10 text-zinc-300'
-              }`}
-            >
-              {reviews.length}
-            </span>
-          </button>
-        </nav>
-
-        {/* Actions à droite */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => {
-              const token = sessionStorage.getItem('yufo_admin_token') || 'yufo2026';
-              fetchProducts(token);
-              fetchRequests(token);
-              fetchReviews(token);
-            }}
-            className="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 border border-white/10 flex items-center justify-center text-zinc-400 hover:text-white transition-colors cursor-pointer"
-            title="Rafraîchir les données"
-          >
-            <IconRefresh
-              size={16}
-              className={productsLoading || loading || reviewsLoading ? 'animate-spin' : ''}
-            />
-          </button>
-
-          <button
-            onClick={handleLogout}
-            className="h-10 px-4 rounded-full bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/20 text-rose-300 text-xs font-medium flex items-center gap-1.5 transition-colors cursor-pointer"
-            title="Se déconnecter"
-          >
-            <IconLogout size={15} />
-            <span className="hidden sm:inline">Quitter</span>
-          </button>
-        </div>
-      </header>
 
       {/* Message de succès d'action temporaire */}
       {(productActionMsg || reviewActionMsg) && (
@@ -754,7 +690,7 @@ export default function AdminPage() {
       )}
 
       {/* Contenu Principal */}
-      <main className="flex-1 max-w-[1720px] w-full mx-auto px-5 sm:px-10 lg:px-14 py-8">
+      <main className="flex-1 overflow-y-auto w-full px-5 sm:px-8 lg:px-12 py-8 lg:py-10">
         {/* ================================================================= */}
         {/* ONGLET 1 : COLLECTIONS & ARTICLES DU CATALOGUE                     */}
         {/* ================================================================= */}
@@ -1278,6 +1214,7 @@ export default function AdminPage() {
           </div>
         )}
       </main>
+      </section>
 
       {/* ================================================================= */}
       {/* MODAL : AJOUTER OU MODIFIER UN ARTICLE DE COLLECTION               */}
