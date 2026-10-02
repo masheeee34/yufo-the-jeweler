@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { getRequests, saveRequests, ClientRequest } from '../../../lib/requestsDb';
 import { getUserById } from '../../../lib/usersDb';
+import { MAX_ATTACHMENTS, uploadExists } from '../../../lib/uploads';
 
 const clean = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
 
@@ -25,6 +26,10 @@ export async function POST(req: NextRequest) {
     const referencedPiece = clean(body.referencedPiece, 120);
     const duration = clean(body.duration, 30);
     const budget = clean(body.budget, 30);
+    // Images envoyées au préalable via /api/uploads : on ne garde que des noms valides et existants.
+    const attachments = Array.isArray(body.attachments)
+      ? [...new Set<string>(body.attachments.map((a: unknown) => String(a)))].filter(uploadExists).slice(0, MAX_ATTACHMENTS)
+      : [];
 
     if (!category || vision.length < 15) {
       return NextResponse.json(
@@ -59,8 +64,10 @@ export async function POST(req: NextRequest) {
             '',
             'VISION:',
             vision,
+            attachments.length ? `\nREFERENCE IMAGES: ${attachments.length}` : null,
           ].filter((l) => l !== null).join('\n'),
           createdAt: now.toISOString(),
+          ...(attachments.length ? { attachments } : {}),
         },
       ],
     };

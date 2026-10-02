@@ -6,6 +6,7 @@ export interface ChatMessage {
   sender: 'client' | 'admin';
   text: string;
   createdAt: string;
+  attachments?: string[];
 }
 
 export interface ClientRequest {

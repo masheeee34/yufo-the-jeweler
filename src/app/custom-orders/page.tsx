@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
+import { SiteFooter } from '../../components/SiteFooter';
+import { LoaderOne } from '../../components/LoaderOne';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -62,8 +64,8 @@ function CustomOrdersContent() {
       <main className="flex-1 w-full border-b border-white/10" aria-label="Custom order commission">
         <Suspense
           fallback={
-            <div className="py-24 text-center text-xs uppercase tracking-widest text-zinc-500">
-              Loading custom commission studio...
+            <div className="py-24 flex justify-center">
+              <LoaderOne />
             </div>
           }
         >
@@ -109,21 +111,7 @@ function CustomOrdersContent() {
         </div>
       </section>
 
-      {/* Footer */}
-      <footer className="border-t border-white/5 bg-[#050507] py-8 px-5 sm:px-10 lg:px-14 text-xs text-zinc-500">
-        <div className="max-w-[1720px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span>© 2026 YUFO The Jeweler</span>
-            <span>·</span>
-            <span>SoHo & Los Santos Private Atelier</span>
-          </div>
-          <div className="flex items-center gap-6 text-zinc-400">
-            <Link href="/collections/shop-all" className="hover:text-white transition-colors">Creations</Link>
-            <Link href="/custom-orders" className="hover:text-white transition-colors">Custom orders</Link>
-            <a href="https://discord.gg/yufothejeweler" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Discord lounge</a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
 
       {/* Concierge Live Chat */}
       <AlexMossChat />

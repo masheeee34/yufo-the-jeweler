@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import { SiteFooter } from '../components/SiteFooter';
 import Link from 'next/link';
 import Image from 'next/image';
 import { AlexMossHeader } from '../components/AlexMossHeader';
@@ -247,22 +248,7 @@ function HomeContent() {
         <ReviewsMarquee />
       </main>
 
-      {/* 6. Minimal Footer */}
-      <footer className="border-t border-white/5 bg-[#050507] py-8 px-5 sm:px-10 lg:px-14 text-xs text-zinc-500">
-        <div className="max-w-[1720px] mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <span>© 2026 YUFO The Jeweler</span>
-            <span>·</span>
-            <span>Digital Haute Joaillerie for FiveM</span>
-          </div>
-
-          <div className="flex items-center gap-6 text-zinc-400">
-            <Link href="/collections/shop-all" className="hover:text-white transition-colors">Creations</Link>
-            <Link href="/custom-orders" className="hover:text-white transition-colors">Custom orders</Link>
-            <a href="https://discord.gg" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Discord</a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
 
       {/* Floating 72h Concierge Chat */}
       <AlexMossChat />

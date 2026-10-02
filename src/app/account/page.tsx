@@ -644,7 +644,7 @@ function AccountPageContent() {
 
             {/* Terms notice */}
             <p className="text-[11px] text-zinc-500 text-center leading-relaxed">
-              By continuing, you agree to YUFO Atelier&apos;s Terms of Service and Privacy Policy.
+              By continuing, you agree to YUFO Atelier&apos;s <Link href="/legal#terms" className="underline hover:text-white">Terms of sale</Link> and <Link href="/legal#privacy" className="underline hover:text-white">Privacy policy</Link>.
             </p>
 
           </div>

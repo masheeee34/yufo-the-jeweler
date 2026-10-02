@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import Image from 'next/image';
+import { MessageAttachments } from './MessageAttachments';
 import {
   MessageSquare,
   X,
@@ -16,6 +17,7 @@ interface ChatMessage {
   sender: 'client' | 'admin';
   text: string;
   createdAt: string;
+  attachments?: string[];
 }
 
 interface ClientRequest {
@@ -342,7 +344,8 @@ export const AlexMossChat: React.FC = () => {
                             : 'bg-white text-zinc-950 font-normal rounded-2xl rounded-tr-sm shadow-sm'
                         }`}
                       >
-                        {m.text}
+                        <span className="whitespace-pre-line">{m.text}</span>
+                        <MessageAttachments names={m.attachments} />
                       </div>
                     </div>
                   );

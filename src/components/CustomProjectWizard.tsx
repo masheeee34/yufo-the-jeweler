@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../lib/authContext';
 import {
@@ -8,8 +8,10 @@ import {
   IconArrowRight,
   IconBrandDiscord,
   IconCheck,
+  IconPhotoPlus,
   IconX,
 } from '@tabler/icons-react';
+import { LoaderOne } from './LoaderOne';
 
 export const DISCORD_INVITE = 'https://discord.gg/yufothejeweler';
 
@@ -30,6 +32,37 @@ const DURATION_TICKS = ['1', '2', '4', '6', '8+'];
 const BUDGETS = ['$50', '$100', '$250', '$500', '$1K+'];
 
 const STEPS = ['Your project', 'Your vision', 'Timeline & budget', 'Review'];
+
+const MAX_IMAGES = 6;
+
+interface RefImage {
+  key: string;
+  preview: string;
+  name?: string;
+  status: 'uploading' | 'done' | 'error';
+}
+
+// Réduit les grosses photos (max 1600 px, JPEG) avant l'envoi : plus rapide, surtout sur mobile.
+async function shrinkImage(file: File): Promise<Blob> {
+  if (file.type === 'image/gif' || typeof createImageBitmap === 'undefined') return file;
+  try {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1600 / Math.max(bmp.width, bmp.height));
+    if (scale === 1 && file.size < 1.5 * 1024 * 1024) return file;
+    const canvas = document.createElement('canvas');
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return file;
+    ctx.fillStyle = '#000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, 'image/jpeg', 0.85));
+    return blob || file;
+  } catch {
+    return file;
+  }
+}
 
 function StepSlider({
   id,
@@ -100,10 +133,44 @@ export function CustomProjectWizard({
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [ticketId, setTicketId] = useState('');
+  const [images, setImages] = useState<RefImage[]>([]);
+  const [dragOver, setDragOver] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const uploading = images.some((img) => img.status === 'uploading');
+
+  const addFiles = (list: FileList | File[]) => {
+    const files = Array.from(list).filter((f) => f.type.startsWith('image/'));
+    const room = MAX_IMAGES - images.length;
+    if (files.length > room) setError(`You can attach up to ${MAX_IMAGES} images.`);
+    files.slice(0, Math.max(0, room)).forEach(async (file) => {
+      const key = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+      const preview = URL.createObjectURL(file);
+      setImages((prev) => [...prev, { key, preview, status: 'uploading' }]);
+      try {
+        const fd = new FormData();
+        fd.append('file', await shrinkImage(file), file.name);
+        const res = await fetch('/api/uploads', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error || 'Upload failed');
+        setImages((prev) => prev.map((img) => (img.key === key ? { ...img, name: data.name, status: 'done' } : img)));
+      } catch (e: any) {
+        setError(e.message || 'An image could not be uploaded.');
+        setImages((prev) => prev.map((img) => (img.key === key ? { ...img, status: 'error' } : img)));
+      }
+    });
+  };
+
+  const removeImage = (key: string) =>
+    setImages((prev) => {
+      const img = prev.find((i) => i.key === key);
+      if (img) URL.revokeObjectURL(img.preview);
+      return prev.filter((i) => i.key !== key);
+    });
 
   const canContinue =
     (step === 0 && !!category) ||
-    (step === 1 && vision.trim().length >= 15) ||
+    (step === 1 && vision.trim().length >= 15 && !uploading) ||
     step === 2 ||
     step === 3;
 
@@ -127,6 +194,7 @@ export function CustomProjectWizard({
           referencedPiece,
           duration: DURATIONS[durationIndex],
           budget: BUDGETS[budgetIndex],
+          attachments: images.filter((img) => img.status === 'done').map((img) => img.name),
         }),
       });
       const data = await res.json();
@@ -282,15 +350,95 @@ export function CustomProjectWizard({
             <p className="text-sm text-zinc-400">Design, text or engraving, stones, colors, references. The more detail, the better.</p>
             <textarea
               autoFocus
-              rows={7}
+              rows={5}
               value={vision}
               onChange={(e) => setVision(e.target.value)}
+              onPaste={(e) => {
+                const pasted = Array.from(e.clipboardData.files);
+                if (pasted.length) {
+                  e.preventDefault();
+                  addFiles(pasted);
+                }
+              }}
               placeholder="Example: a gold medallion of my crew logo, iced-out edges, with our name engraved on the back..."
               className="w-full p-4 rounded-xl bg-white/[0.04] border border-white/10 focus:border-white/40 focus:outline-none text-sm text-white placeholder-zinc-600 leading-relaxed resize-none transition-colors"
             />
             <p className={`text-[11px] transition-colors ${vision.trim().length >= 15 ? 'text-zinc-600' : 'text-zinc-500'}`}>
               {vision.trim().length < 15 ? 'A few more words to continue' : `${vision.trim().length} characters`}
             </p>
+
+            {/* Images de référence (facultatives) */}
+            <div
+              onDragOver={(e) => {
+                e.preventDefault();
+                setDragOver(true);
+              }}
+              onDragLeave={() => setDragOver(false)}
+              onDrop={(e) => {
+                e.preventDefault();
+                setDragOver(false);
+                addFiles(e.dataTransfer.files);
+              }}
+              className={`rounded-xl border border-dashed p-3 transition-colors ${
+                dragOver ? 'border-white/50 bg-white/[0.06]' : 'border-white/15 bg-white/[0.02]'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2.5 px-0.5">
+                <span className="text-xs font-medium text-zinc-300">Reference images</span>
+                <span className="text-[11px] text-zinc-500">Optional · {images.length}/{MAX_IMAGES}</span>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {images.map((img) => (
+                  <div key={img.key} className="wiz-pop relative w-16 h-16 rounded-lg overflow-hidden border border-white/10 bg-black/40">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.preview} alt="" className={`w-full h-full object-cover ${img.status === 'done' ? '' : 'opacity-40'}`} />
+                    {img.status === 'uploading' && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <LoaderOne size={6} />
+                      </div>
+                    )}
+                    {img.status === 'error' && (
+                      <span className="absolute inset-x-0 bottom-0 text-[9px] text-center bg-rose-600/80 text-white py-0.5">Failed</span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeImage(img.key)}
+                      className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/70 text-white flex items-center justify-center hover:bg-black"
+                      aria-label="Remove image"
+                    >
+                      <IconX size={11} />
+                    </button>
+                  </div>
+                ))}
+                {images.length < MAX_IMAGES && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-16 h-16 rounded-lg border border-white/15 hover:border-white/40 hover:bg-white/[0.05] text-zinc-400 hover:text-white flex flex-col items-center justify-center gap-1 transition-colors"
+                    aria-label="Add reference images"
+                  >
+                    <IconPhotoPlus size={18} stroke={1.6} />
+                    <span className="text-[9px]">Add</span>
+                  </button>
+                )}
+                {images.length === 0 && (
+                  <p className="flex-1 min-w-[140px] self-center text-[11px] text-zinc-500 leading-snug">
+                    Drop, paste or pick photos: sketches, logos, inspiration.
+                  </p>
+                )}
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                multiple
+                hidden
+                onChange={(e) => {
+                  if (e.target.files) addFiles(e.target.files);
+                  e.target.value = '';
+                }}
+              />
+            </div>
           </div>
         )}
 
@@ -325,6 +473,7 @@ export function CustomProjectWizard({
                 ['Worn by', pedTarget],
                 ['Delivery', DURATIONS[durationIndex]],
                 ['Budget', BUDGETS[budgetIndex]],
+                ['Images', String(images.filter((img) => img.status === 'done').length || 'None')],
                 ['Discord', user?.pseudo || '-'],
               ].map(([k, v]) => (
                 <div key={k} className="flex justify-between gap-4 px-4 py-3">

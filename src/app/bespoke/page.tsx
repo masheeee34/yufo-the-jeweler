@@ -2,6 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import { SiteFooter } from '../../components/SiteFooter';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CartProvider, useCart } from '../../lib/cartContext';
@@ -893,45 +894,7 @@ function BespokePageContent() {
       </section>
 
 
-      {/* 6. LUXURY FOOTER */}
-      <footer className="border-t border-white/10 py-16 px-6 sm:px-12 md:px-16 bg-[#151515]">
-        <div className="max-w-[1920px] mx-auto flex flex-col md:flex-row items-center justify-between gap-8">
-          
-          <div className="flex items-center gap-3">
-            <div className="relative w-6 h-6 opacity-80">
-              <Image
-                src="/assets/brand/yufo_clean_white.png"
-                alt="Yufo"
-                fill
-                className="object-contain"
-              />
-            </div>
-            <span className="text-xs uppercase tracking-[0.3em] font-serif text-[#E3E3E3]">
-              YUFO ATELIER · 2026
-            </span>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-center gap-8 text-[11px] uppercase tracking-[0.2em] text-[#E3E3E3]/60 font-light">
-            <Link href="/" className="hover:text-white transition-colors">
-              Runway Experience
-            </Link>
-            <button onClick={() => openCatalog('all')} className="hover:text-white transition-colors">
-              The Vault
-            </button>
-            <button onClick={() => openInquiry('VIP Consultation Request')} className="hover:text-white transition-colors">
-              Private Concierge
-            </button>
-            <a href="https://discord.gg" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">
-              Discord VIP
-            </a>
-          </div>
-
-          <div className="text-[11px] text-[#E3E3E3]/40 font-light tracking-wider text-center md:text-right">
-            Handcrafted for GTA V & FiveM · All Rights Reserved
-          </div>
-
-        </div>
-      </footer>
+      <SiteFooter />
 
 
       {/* UNIVERSAL MODALS & DRAWERS */}

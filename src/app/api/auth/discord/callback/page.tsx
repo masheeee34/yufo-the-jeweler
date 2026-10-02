@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useState, Suspense } from 'react';
+import { LoaderOne } from '../../../../../components/LoaderOne';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { ShieldAlert, ArrowRight, ExternalLink, CheckCircle } from 'lucide-react';
@@ -76,7 +77,7 @@ function CallbackContent() {
       <div className="w-full max-w-md bg-zinc-950 border border-white/10 rounded-2xl p-8 text-center shadow-[0_25px_80px_rgba(0,0,0,0.95)]">
         {status === 'loading' && (
           <div className="space-y-4 py-8">
-            <div className="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin mx-auto" />
+            <LoaderOne className="mx-auto" />
             <p className="text-sm font-medium text-white">
               Authenticating with Yufo The Jeweler atelier...
             </p>
@@ -184,7 +185,7 @@ export default function DiscordCallbackPage() {
     <Suspense
       fallback={
         <div className="min-h-screen bg-[#070709] text-white flex items-center justify-center">
-          <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+          <LoaderOne />
         </div>
       }
     >

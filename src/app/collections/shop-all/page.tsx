@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
+import { SiteFooter } from '../../../components/SiteFooter';
+import { LoaderOne } from '../../../components/LoaderOne';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -357,8 +359,8 @@ function CollectionsPageLayout() {
 
         <Suspense
           fallback={
-            <div className="py-20 text-center text-[12px] uppercase tracking-widest text-[#555555]">
-              Loading Atelier Archive...
+            <div className="py-20 flex justify-center">
+              <LoaderOne />
             </div>
           }
         >
@@ -404,21 +406,7 @@ function CollectionsPageLayout() {
         </div>
       </section>
 
-      {/* Minimal Footer */}
-      <footer className="border-t border-[#14141a] bg-[#050507] py-8 px-6 sm:px-12 text-[#666666] text-[12px] uppercase tracking-[0.06em]">
-        <div className="max-w-[1720px] mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
-          <div className="flex items-center gap-4">
-            <span>© 2026 YUFO The Jeweler</span>
-            <span>·</span>
-            <span>SoHo & Los Santos Private Atelier</span>
-          </div>
-          <div className="flex items-center gap-6 text-[#888888]">
-            <Link href="/collections/shop-all" className="hover:text-white transition-colors">Creations Archive</Link>
-            <Link href="/custom-orders" className="hover:text-white transition-colors">Custom Inquiry</Link>
-            <a href="https://discord.gg" target="_blank" rel="noreferrer" className="hover:text-white transition-colors">Discord Lounge</a>
-          </div>
-        </div>
-      </footer>
+      <SiteFooter />
 
       {/* 72H Concierge Chat Widget */}
       <AlexMossChat />

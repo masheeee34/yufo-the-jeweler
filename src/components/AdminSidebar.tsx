@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 import {
   IconArrowLeft,
   IconArrowRight,
@@ -159,7 +160,7 @@ export const AdminSidebar: React.FC<AdminSidebarProps> = ({
     <div className="flex flex-col h-full">
       {/* Marque */}
       <div className={`flex items-center gap-3 h-[76px] shrink-0 ${compact ? 'justify-center' : 'px-6'}`}>
-        <span className="w-9 h-9 rounded-[9px] bg-white text-zinc-950 flex items-center justify-center text-[15px] font-bold shrink-0">Y</span>
+        <span className="w-9 h-9 rounded-[9px] bg-black border border-white/15 flex items-center justify-center shrink-0"><Image src="/assets/brand/yufo_clean_white.png" alt="YUFO" width={24} height={25} className="object-contain" /></span>
         {!compact && <span className="text-[17px] font-semibold text-white truncate">YUFO Atelier</span>}
         {mobile && (
           <button onClick={onCloseMobile} className="ml-auto w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-400" aria-label="Fermer le menu">

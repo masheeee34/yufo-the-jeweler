@@ -24,6 +24,7 @@ import {
   IconMenu2,
 } from '@tabler/icons-react';
 import { AdminSidebar } from '@/components/AdminSidebar';
+import { MessageAttachments } from '@/components/MessageAttachments';
 import { ReviewItem } from '@/lib/reviewsDb';
 import { Product, ProductCategory, ProductCollection, CATEGORIES_NAV, COLLECTIONS_NAV, YUFO_PRODUCTS } from '@/lib/products';
 
@@ -84,6 +85,7 @@ interface ChatMessage {
   sender: 'client' | 'admin';
   text: string;
   createdAt: string;
+  attachments?: string[];
 }
 
 interface ClientRequest {
@@ -672,7 +674,7 @@ export default function AdminPage() {
           >
             <IconMenu2 size={20} />
           </button>
-          <span className="w-8 h-8 rounded-[8px] bg-white text-zinc-950 flex items-center justify-center text-sm font-bold">Y</span>
+          <span className="w-8 h-8 rounded-[8px] bg-black border border-white/15 flex items-center justify-center"><Image src="/assets/brand/yufo_clean_white.png" alt="YUFO" width={22} height={23} className="object-contain" /></span>
           <span className="text-[16px] font-semibold flex-1">YUFO Atelier</span>
           {pendingCount > 0 && (
             <button onClick={() => setActiveTab('requests')} className="h-7 px-2.5 rounded-full bg-amber-400 text-black text-[11px] font-bold">
@@ -1024,7 +1026,8 @@ export default function AdminPage() {
                                   : 'bg-zinc-900 border border-white/10 text-zinc-200'
                               }`}
                             >
-                              {m.text}
+                              <span className="whitespace-pre-line">{m.text}</span>
+                              <MessageAttachments names={m.attachments} />
                             </div>
                           </div>
                         ))}

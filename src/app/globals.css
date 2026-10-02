@@ -367,3 +367,19 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .user-menu-panel { animation: none; }
 }
+
+/* Chargement : trois billes qui rebondissent l'une après l'autre (LoaderOne) */
+.loader-one-dot {
+  animation: loader-one-bounce 0.9s ease-in-out infinite;
+}
+@keyframes loader-one-bounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(65%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .loader-one-dot { animation-duration: 2.4s; }
+}
+
+/* Page légale */
+.legal-body a { color: #e4e4e7; text-decoration: underline; text-underline-offset: 3px; }
+.legal-body a:hover { color: #fff; }
