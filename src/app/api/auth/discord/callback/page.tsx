@@ -60,8 +60,15 @@ function CallbackContent() {
         setStatus('success');
 
         // Redirect after brief delay
+        // Retour vers la page qui a demandé la connexion (ex. le back-office), sinon l'espace client.
+        let returnTo = '/account';
+        try {
+          const saved = sessionStorage.getItem('yufo_return_to');
+          if (saved && saved.startsWith('/') && !saved.startsWith('//')) returnTo = saved;
+          sessionStorage.removeItem('yufo_return_to');
+        } catch {}
         setTimeout(() => {
-          window.location.href = '/account';
+          window.location.href = returnTo;
         }, 1200);
       } catch (err: any) {
         setStatus('error');

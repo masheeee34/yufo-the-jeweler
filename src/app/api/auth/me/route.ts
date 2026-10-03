@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserById, updateUserProfile } from '../../../../lib/usersDb';
+import { updateUserProfile } from '../../../../lib/usersDb';
+import { destroySession, getSessionUser } from '../../../../lib/session';
 
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const GUILD_ID = '1449069547876516106';
 
+// Profil du visiteur connecté (uniquement le sien : la session décide, pas un paramètre).
 export async function GET(req: NextRequest) {
-  const { searchParams } = new URL(req.url);
-  const cookieId = req.cookies.get('yufo_auth_token')?.value;
-  const id = searchParams.get('id') || cookieId;
-
-  if (!id) {
-    return NextResponse.json({ user: null });
-  }
-
-  const user = getUserById(id);
+  const user = getSessionUser(req);
   if (!user) {
     return NextResponse.json({ user: null });
   }
@@ -32,7 +26,7 @@ export async function GET(req: NextRequest) {
           error: 'GUILD_MEMBERSHIP_REVOKED',
           message: 'Discord membership revoked. Please rejoin the server.',
         });
-        res.cookies.delete('yufo_auth_token');
+        destroySession(req, res);
         return res;
       }
     } catch (watchdogErr) {
@@ -45,15 +39,13 @@ export async function GET(req: NextRequest) {
 
 export async function PATCH(req: NextRequest) {
   try {
-    const { id, pseudo, discordTag, fivemId, phone } = await req.json();
-    const cookieId = req.cookies.get('yufo_auth_token')?.value;
-    const targetId = id || cookieId;
-
-    if (!targetId) {
-      return NextResponse.json({ error: 'Missing user ID' }, { status: 400 });
+    const user = getSessionUser(req);
+    if (!user) {
+      return NextResponse.json({ error: 'Not signed in' }, { status: 401 });
     }
 
-    const updated = updateUserProfile(targetId, { pseudo, discordTag, fivemId, phone });
+    const { pseudo, discordTag, fivemId, phone } = await req.json();
+    const updated = updateUserProfile(user.id, { pseudo, discordTag, fivemId, phone });
     if (!updated) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }

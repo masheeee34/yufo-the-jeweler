@@ -116,6 +116,7 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 <ShoppingBag className="w-3.5 h-3.5" />
                 <span>Acquire creation</span>
               </button>
+              {product.allowSimilarProject !== false && (
               <button
                 type="button"
                 onClick={() => {
@@ -125,8 +126,9 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({
                 className="h-11 px-5 bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-medium text-xs rounded-full transition-colors flex items-center justify-center gap-2 cursor-pointer"
               >
                 <Sparkles className="w-3.5 h-3.5 text-zinc-400" />
-                <span>1-of-1 Bespoke</span>
+                <span>Start a similar project</span>
               </button>
+              )}
             </div>
 
           </div>

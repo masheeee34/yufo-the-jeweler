@@ -28,6 +28,7 @@ interface ClientRequest {
   expiresAt: string;
   status: 'pending' | 'answered' | 'closed';
   messages: ChatMessage[];
+  project?: { stage: string };
 }
 
 export const AlexMossChat: React.FC = () => {
@@ -105,6 +106,22 @@ export const AlexMossChat: React.FC = () => {
       }
     } catch (e) {
       console.error('Error submitting chat request:', e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Le client valide la preview 3D envoyée par l'atelier.
+  const handleApprovePreview = async () => {
+    if (!activeRequest) return;
+    setLoading(true);
+    try {
+      const res = await fetch('/api/projects/approve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: activeRequest.id }),
+      });
+      if (res.ok) await fetchRequestStatus(activeRequest.id, true);
     } finally {
       setLoading(false);
     }
@@ -352,6 +369,19 @@ export const AlexMossChat: React.FC = () => {
                 })}
                 <div ref={messagesEndRef} />
               </div>
+
+              {activeRequest.project?.stage === 'preview' && (
+                <div className="px-5 py-3 border-t border-white/5 bg-emerald-500/[0.06] flex items-center justify-between gap-3">
+                  <span className="text-[11px] text-zinc-300">Happy with the 3D preview? Approve it, or reply below with the changes you want.</span>
+                  <button
+                    onClick={handleApprovePreview}
+                    disabled={loading}
+                    className="shrink-0 h-8 px-3 rounded-full bg-emerald-500 hover:bg-emerald-400 text-black text-[11px] font-semibold disabled:opacity-50"
+                  >
+                    Approve 3D preview
+                  </button>
+                </div>
+              )}
 
               {/* Follow-up input bar */}
               <form onSubmit={handleSendFollowUp} className="p-3 bg-zinc-900/30 border-t border-white/5 flex items-center gap-2">

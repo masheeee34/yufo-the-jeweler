@@ -7,6 +7,7 @@ import { useAuth } from '../lib/authContext';
 import { useCart } from '../lib/cartContext';
 import { SearchOverlay } from './SearchOverlay';
 import { UserMenu } from './UserMenu';
+import { AnnouncementBar } from './AnnouncementBar';
 import { DISCORD_INVITE } from './CustomProjectWizard';
 import {
   IconSearch,
@@ -52,6 +53,8 @@ export const AlexMossHeader: React.FC<AlexMossHeaderProps> = ({
         onSelectCategory={() => {}}
         onSearchSubmit={() => {}}
       />
+
+      <AnnouncementBar />
 
       {/* Main Luxury Header Bar */}
       <header className="sticky top-0 left-0 right-0 z-40 bg-[#070709] border-b border-[#16161d] select-none transition-colors">

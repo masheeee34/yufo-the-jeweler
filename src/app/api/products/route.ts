@@ -3,9 +3,14 @@ import { getProducts } from '@/lib/productsDb';
 
 export const dynamic = 'force-dynamic';
 
+// Catalogue public : seulement les créations publiées, hors corbeille, dans l'ordre choisi dans l'admin.
 export async function GET() {
   try {
-    const products = getProducts();
+    const products = getProducts()
+      .map((p, i) => ({ p, order: p.sortOrder ?? i }))
+      .filter(({ p }) => (p.status || 'published') === 'published' && !p.deletedAt)
+      .sort((a, b) => a.order - b.order)
+      .map(({ p }) => p);
     return NextResponse.json({ products });
   } catch (error) {
     console.error('Error fetching products:', error);

@@ -1,99 +1,153 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getProducts, addProduct, updateProduct, deleteProduct } from '@/lib/productsDb';
-
-const ADMIN_SECRET = process.env.ADMIN_SECRET;
-
-function verifyAdmin(request: NextRequest): boolean {
-  const token = request.headers.get('x-admin-key');
-  return !!ADMIN_SECRET && token === ADMIN_SECRET;
-}
+import { audit, diff, requireAdmin } from '@/lib/team';
+import { getProducts, addProduct, updateProduct, saveProducts } from '@/lib/productsDb';
+import { Product, ProductStatus } from '@/lib/products';
 
 export const dynamic = 'force-dynamic';
 
-export async function GET(request: NextRequest) {
-  if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+const STATUSES: ProductStatus[] = ['draft', 'published', 'hidden'];
+
+// Champs modifiables depuis l'admin (tout le reste est ignoré).
+function pickEditable(body: any): Partial<Product> {
+  const out: Partial<Product> = {};
+  const str = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
+  if (body.name !== undefined) out.name = str(body.name, 140);
+  if (body.price !== undefined) out.price = Math.max(0, Number(body.price) || 0);
+  if (body.shortDescription !== undefined) out.shortDescription = str(body.shortDescription, 300);
+  if (body.fullDescription !== undefined) out.fullDescription = str(body.fullDescription, 5000);
+  if (body.category !== undefined) out.category = str(body.category, 40);
+  if (body.collection !== undefined) out.collection = str(body.collection, 40) || undefined;
+  if (body.brand !== undefined) out.brand = str(body.brand, 80);
+  if (body.reference !== undefined) out.reference = str(body.reference, 60);
+  if (body.image !== undefined) out.image = str(body.image, 500);
+  if (body.hoverImage !== undefined) out.hoverImage = str(body.hoverImage, 500);
+  if (body.inStock !== undefined) out.inStock = !!body.inStock;
+  if (body.featured !== undefined) out.featured = !!body.featured;
+  if (body.allowSimilarProject !== undefined) out.allowSimilarProject = !!body.allowSimilarProject;
+  if (body.status !== undefined && STATUSES.includes(body.status)) out.status = body.status;
+  if (body.tags !== undefined) {
+    const list = Array.isArray(body.tags) ? body.tags : String(body.tags).split(',');
+    out.tags = [...new Set<string>(list.map((t: unknown) => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, 15);
   }
-  const products = getProducts();
+  if (body.specs && typeof body.specs === 'object') {
+    out.specs = {
+      material: str(body.specs.material, 120),
+      stones: str(body.specs.stones, 120),
+      compatibility: str(body.specs.compatibility, 160),
+      delivery: str(body.specs.delivery, 160),
+    };
+  }
+  return out;
+}
+
+export async function GET(req: NextRequest) {
+  const ctx = requireAdmin(req, 'store');
+  if (ctx instanceof NextResponse) return ctx;
+  const products = getProducts()
+    .map((p, i) => ({ ...p, status: p.status || 'published', sortOrder: p.sortOrder ?? i }))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
   return NextResponse.json({ products });
 }
 
-export async function POST(request: NextRequest) {
-  if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+// Création, ou action : duplicate / reorder / restore.
+export async function POST(req: NextRequest) {
+  const ctx = requireAdmin(req, 'store');
+  if (ctx instanceof NextResponse) return ctx;
+  const body = await req.json();
+
+  if (body.action === 'reorder') {
+    const ids: string[] = Array.isArray(body.ids) ? body.ids.map(String) : [];
+    const products = getProducts();
+    const pos = new Map(ids.map((id, i) => [id, i]));
+    products.forEach((p, i) => (p.sortOrder = pos.has(p.id) ? pos.get(p.id)! : ids.length + i));
+    products.sort((a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0));
+    saveProducts(products);
+    audit(ctx, 'product.reorder', { detail: `${ids.length} créations réordonnées` });
+    return NextResponse.json({ success: true });
   }
 
-  try {
-    const body = await request.json();
-    if (!body.name || body.price === undefined || !body.fullDescription) {
-      return NextResponse.json(
-        { error: 'Le titre, le prix et la description sont obligatoires.' },
-        { status: 400 }
-      );
-    }
-
-    const product = addProduct({
-      name: body.name,
-      price: Number(body.price),
-      shortDescription: body.shortDescription,
-      fullDescription: body.fullDescription,
-      category: body.category || 'pendants',
-      collection: body.collection || 'essence',
-      brand: body.brand,
-      reference: body.reference,
-      image: body.image,
-      hoverImage: body.hoverImage,
-      specs: body.specs,
-      inStock: body.inStock,
-      featured: body.featured,
-    });
-
+  if (body.action === 'duplicate') {
+    const src = getProducts().find((p) => p.id === body.id);
+    if (!src) return NextResponse.json({ error: 'Création introuvable' }, { status: 404 });
+    const copy = addProduct({ ...src, name: `${src.name} (copy)`, reference: undefined, fullDescription: src.fullDescription });
+    const product = updateProduct(copy.id, { status: 'draft', tags: src.tags, allowSimilarProject: src.allowSimilarProject, featured: false, updatedAt: new Date().toISOString() });
+    audit(ctx, 'product.duplicate', { target: src.name, detail: `Copie créée en brouillon : ${copy.id}` });
     return NextResponse.json({ success: true, product });
-  } catch (e: any) {
-    console.error('Error creating product:', e);
-    return NextResponse.json({ error: e.message || 'Erreur creation produit' }, { status: 500 });
   }
+
+  if (body.action === 'restore') {
+    const before = getProducts().find((p) => p.id === body.id);
+    if (!before) return NextResponse.json({ error: 'Création introuvable' }, { status: 404 });
+    const product = updateProduct(body.id, { deletedAt: undefined, updatedAt: new Date().toISOString() });
+    audit(ctx, 'product.restore', { target: before.name });
+    return NextResponse.json({ success: true, product });
+  }
+
+  const fields = pickEditable(body);
+  if (!fields.name || fields.price === undefined || !fields.fullDescription) {
+    return NextResponse.json({ error: 'Le titre, le prix et la description sont obligatoires.' }, { status: 400 });
+  }
+  const created = addProduct({
+    name: fields.name,
+    price: fields.price,
+    shortDescription: fields.shortDescription,
+    fullDescription: fields.fullDescription,
+    category: fields.category || 'pendants',
+    collection: fields.collection,
+    brand: fields.brand,
+    reference: fields.reference,
+    image: fields.image,
+    hoverImage: fields.hoverImage,
+    specs: fields.specs,
+    inStock: fields.inStock,
+    featured: fields.featured,
+  });
+  const product = updateProduct(created.id, {
+    status: fields.status || 'draft',
+    tags: fields.tags || [],
+    allowSimilarProject: fields.allowSimilarProject ?? true,
+    sortOrder: -1,
+    updatedAt: new Date().toISOString(),
+  });
+  audit(ctx, 'product.create', { target: created.name, after: { price: created.price, status: product?.status } });
+  return NextResponse.json({ success: true, product });
 }
 
-export async function PATCH(request: NextRequest) {
-  if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
+export async function PATCH(req: NextRequest) {
+  const ctx = requireAdmin(req, 'store');
+  if (ctx instanceof NextResponse) return ctx;
+  const body = await req.json();
+  const before = getProducts().find((p) => p.id === body.id);
+  if (!before) return NextResponse.json({ error: 'Création introuvable' }, { status: 404 });
 
-  try {
-    const body = await request.json();
-    if (!body.id) {
-      return NextResponse.json({ error: 'ID produit requis' }, { status: 400 });
-    }
-
-    const product = updateProduct(body.id, body);
-    if (!product) {
-      return NextResponse.json({ error: 'Produit introuvable' }, { status: 404 });
-    }
-
-    return NextResponse.json({ success: true, product });
-  } catch (e: any) {
-    console.error('Error updating product:', e);
-    return NextResponse.json({ error: e.message || 'Erreur mise a jour produit' }, { status: 500 });
-  }
+  const product = updateProduct(body.id, { ...pickEditable(body), updatedAt: new Date().toISOString() });
+  if (!product) return NextResponse.json({ error: 'Création introuvable' }, { status: 404 });
+  const { updatedAt: _a, priceDisplay: _b, ...b } = before;
+  const { updatedAt: _c, priceDisplay: _d, ...a } = product;
+  const changes = diff(b as Record<string, any>, a as Record<string, any>);
+  if (changes) audit(ctx, 'product.update', { target: product.name, ...changes });
+  return NextResponse.json({ success: true, product });
 }
 
-export async function DELETE(request: NextRequest) {
-  if (!verifyAdmin(request)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
-
-  const { searchParams } = new URL(request.url);
+// Corbeille par défaut ; ?permanent=1 supprime définitivement (Founder et Admin, depuis la corbeille).
+export async function DELETE(req: NextRequest) {
+  const ctx = requireAdmin(req, 'store');
+  if (ctx instanceof NextResponse) return ctx;
+  const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
+  const products = getProducts();
+  const target = products.find((p) => p.id === id);
+  if (!target) return NextResponse.json({ error: 'Création introuvable' }, { status: 404 });
 
-  if (!id) {
-    return NextResponse.json({ error: 'ID produit requis' }, { status: 400 });
+  if (searchParams.get('permanent') === '1') {
+    if (!['founder', 'admin'].includes(ctx.member.role)) return NextResponse.json({ error: 'Réservé aux Founders et Admins.' }, { status: 403 });
+    if (!target.deletedAt) return NextResponse.json({ error: 'Mettez d’abord la création à la corbeille.' }, { status: 409 });
+    saveProducts(products.filter((p) => p.id !== id));
+    audit(ctx, 'product.delete_permanent', { target: target.name, before: { price: target.price, reference: target.reference } });
+    return NextResponse.json({ success: true });
   }
 
-  const ok = deleteProduct(id);
-  if (!ok) {
-    return NextResponse.json({ error: 'Produit introuvable ou echec suppression' }, { status: 404 });
-  }
-
+  updateProduct(target.id, { deletedAt: new Date().toISOString() });
+  audit(ctx, 'product.trash', { target: target.name });
   return NextResponse.json({ success: true });
 }

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { getRequests, saveRequests, ClientRequest } from '../../../lib/requestsDb';
-import { getUserById } from '../../../lib/usersDb';
+import { getSessionUser } from '../../../lib/session';
+import { getSettings } from '../../../lib/settings';
 import { MAX_ATTACHMENTS, uploadExists } from '../../../lib/uploads';
 
 const clean = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
@@ -10,13 +11,16 @@ const clean = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
 // Réservée aux comptes connectés avec Discord : l'atelier répond ensuite depuis le site.
 export async function POST(req: NextRequest) {
   try {
-    const userId = req.cookies.get('yufo_auth_token')?.value;
-    const user = userId ? getUserById(userId) : null;
+    const user = getSessionUser(req);
     if (!user || !user.discordId) {
       return NextResponse.json(
         { error: 'Please sign in with Discord before sending a custom request.' },
         { status: 401 }
       );
+    }
+
+    if (getSettings().customOrders.mode === 'closed') {
+      return NextResponse.json({ error: 'Custom orders are closed for the moment. Join our Discord to be notified.' }, { status: 403 });
     }
 
     const body = await req.json();
@@ -49,6 +53,7 @@ export async function POST(req: NextRequest) {
       createdAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + 72 * 60 * 60 * 1000).toISOString(),
       status: 'pending',
+      project: { stage: 'brief', previews: [], finalFiles: [], updatedAt: now.toISOString() },
       messages: [
         {
           id: `msg_${Date.now()}_1`,

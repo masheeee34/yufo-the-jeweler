@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { audit, can, getAdmin } from '../../../../lib/team';
+import { MAX_ATTACHMENTS, uploadExists } from '../../../../lib/uploads';
 import { getRequests, saveRequests, ChatMessage } from '../../../../lib/requestsDb';
 
-const ADMIN_PASS = process.env.ADMIN_PASSWORD;
-
-function isAuthorized(req: NextRequest) {
-  const token = req.headers.get('x-admin-key');
-  return !!ADMIN_PASS && token === ADMIN_PASS;
+// Accès réservé aux membres de l'équipe connectés avec Discord (voir lib/team.ts).
+function isAuthorized(req: NextRequest): boolean {
+  const admin = getAdmin(req);
+  return !!admin && can(admin.member.role, 'messages');
 }
 
 export async function GET(req: NextRequest) {
@@ -23,8 +24,9 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { requestId, replyText } = await req.json();
-    if (!requestId || !replyText) {
+    const { requestId, replyText, attachments } = await req.json();
+    const files: string[] = Array.isArray(attachments) ? attachments.map(String).filter(uploadExists).slice(0, MAX_ATTACHMENTS) : [];
+    if (!requestId || (!replyText && files.length === 0)) {
       return NextResponse.json({ error: 'Paramètres manquants' }, { status: 400 });
     }
 
@@ -37,8 +39,9 @@ export async function POST(req: NextRequest) {
     const newMsg: ChatMessage = {
       id: `msg_${Date.now()}_${Math.random().toString(36).substring(2, 6)}`,
       sender: 'admin',
-      text: String(replyText).trim(),
+      text: String(replyText || '').trim(),
       createdAt: new Date().toISOString(),
+      ...(files.length ? { attachments: files } : {}),
     };
 
     found.messages.push(newMsg);
@@ -57,17 +60,26 @@ export async function PATCH(req: NextRequest) {
   }
 
   try {
-    const { requestId, status } = await req.json();
+    const { requestId, status, ticketType, linkedId } = await req.json();
     const requests = getRequests();
     const found = requests.find((r) => r.id === requestId);
     if (!found) {
       return NextResponse.json({ error: 'Requête introuvable' }, { status: 404 });
     }
 
-    if (['pending', 'answered', 'closed'].includes(status)) {
-      found.status = status;
-      saveRequests(requests);
+    const before = { status: found.status, ticketType: found.ticketType, linkedId: found.linkedId };
+    // pending = Open, answered = Waiting for customer, closed = Resolved
+    if (['pending', 'answered', 'closed'].includes(status)) found.status = status;
+    if (['custom', 'order', 'general'].includes(ticketType)) found.ticketType = ticketType;
+    if (linkedId !== undefined) {
+      if (linkedId && !requests.some((r) => r.id === linkedId)) {
+        return NextResponse.json({ error: 'Commande ou projet introuvable' }, { status: 404 });
+      }
+      found.linkedId = linkedId || undefined;
     }
+    saveRequests(requests);
+    const admin = getAdmin(req);
+    if (admin) audit(admin, 'ticket.update', { target: found.id, before, after: { status: found.status, ticketType: found.ticketType, linkedId: found.linkedId } });
 
     return NextResponse.json({ success: true, request: found });
   } catch (e: any) {

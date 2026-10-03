@@ -9,6 +9,14 @@ export interface ReviewItem {
   rating: number; // 1 à 5
   isVerified: boolean;
   createdAt: string;
+  source?: 'verified' | 'imported' | 'manual'; // achat vérifié, avis importé, ajouté à la main
+  hidden?: boolean;
+  featured?: boolean;
+  productId?: string;
+  orderId?: string;
+  reply?: { text: string; by: string; at: string };
+  deletedAt?: string; // corbeille
+  updatedAt?: string;
 }
 
 const DB_PATH = path.join(process.cwd(), 'data', 'reviews.json');

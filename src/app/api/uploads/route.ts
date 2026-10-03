@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
-import { getUserById } from '../../../lib/usersDb';
+import { getSessionUser } from '../../../lib/session';
 import { MAX_UPLOAD_BYTES, UPLOADS_DIR, sniffImage } from '../../../lib/uploads';
 
 // Envoi d'une image de référence pour une demande sur mesure (comptes Discord uniquement).
 export async function POST(req: NextRequest) {
-  const userId = req.cookies.get('yufo_auth_token')?.value;
-  const user = userId ? getUserById(userId) : null;
+  const user = getSessionUser(req);
   if (!user || !user.discordId) {
     return NextResponse.json({ error: 'Please sign in with Discord first.' }, { status: 401 });
   }

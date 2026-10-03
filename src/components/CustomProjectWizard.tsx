@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAuth } from '../lib/authContext';
 import {
@@ -27,9 +27,18 @@ const CATEGORIES = [
 const PED_TARGETS = ['Universal (male & female)', 'Male freemode', 'Female freemode', 'Custom ped'];
 
 // Tranches affichées sur les curseurs : à ajuster selon les tarifs de l'atelier.
-const DURATIONS = ['1 week', '2 weeks', '4 weeks', '6 weeks', '8+ weeks'];
-const DURATION_TICKS = ['1', '2', '4', '6', '8+'];
-const BUDGETS = ['$50', '$100', '$250', '$500', '$1K+'];
+// Valeurs par défaut ; les vraies tranches se règlent dans le back-office (Settings › Custom orders).
+const DEFAULT_DURATIONS = ['1 week', '2 weeks', '4 weeks', '6 weeks', '8+ weeks'];
+const DEFAULT_BUDGETS = ['$50', '$100', '$250', '$500', '$1K+'];
+
+interface WizardConfig {
+  mode: 'open' | 'limited' | 'closed';
+  budgets: string[];
+  durations: string[];
+  note: string;
+  startingPrice?: number;
+  intro: string;
+}
 
 const STEPS = ['Your project', 'Your vision', 'Timeline & budget', 'Review'];
 
@@ -130,6 +139,26 @@ export function CustomProjectWizard({
   const [vision, setVision] = useState('');
   const [durationIndex, setDurationIndex] = useState(2);
   const [budgetIndex, setBudgetIndex] = useState(2);
+  const [cfg, setCfg] = useState<WizardConfig>({ mode: 'open', budgets: DEFAULT_BUDGETS, durations: DEFAULT_DURATIONS, note: '', intro: '' });
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((d) => {
+        const c = d.customOrders;
+        if (!c) return;
+        const budgets = Array.isArray(c.budgets) && c.budgets.length > 1 ? c.budgets : DEFAULT_BUDGETS;
+        const durations = Array.isArray(c.durations) && c.durations.length > 1 ? c.durations : DEFAULT_DURATIONS;
+        setCfg({ mode: c.mode || 'open', budgets, durations, note: c.note || '', startingPrice: c.startingPrice, intro: d.general?.customPageIntro || '' });
+        setBudgetIndex((i) => Math.min(i, budgets.length - 1));
+        setDurationIndex((i) => Math.min(i, durations.length - 1));
+      })
+      .catch(() => {});
+  }, []);
+
+  const DURATIONS = cfg.durations;
+  const BUDGETS = cfg.budgets;
+  const DURATION_TICKS = DURATIONS.map((d) => d.split(' ')[0]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [ticketId, setTicketId] = useState('');
@@ -221,6 +250,20 @@ export function CustomProjectWizard({
     </a>
   );
 
+  // Commandes sur mesure fermées depuis le back-office
+  if (cfg.mode === 'closed' && step !== 4) {
+    return (
+      <div className="wiz-card wiz-in-forward">
+        <div className="flex items-center justify-between mb-6">
+          <span className="text-[11px] uppercase tracking-[0.18em] text-zinc-500">Custom project</span>
+          {discordButton}
+        </div>
+        <h2 className="text-2xl font-semibold tracking-tight text-white mb-2">Custom orders are closed for now</h2>
+        <p className="text-sm text-zinc-400 leading-relaxed">{cfg.note || 'Our jewelers are fully booked. Join our Discord to be the first to know when new slots open.'}</p>
+      </div>
+    );
+  }
+
   // Connexion Discord obligatoire avant toute demande
   if (!loading && !user) {
     return (
@@ -287,6 +330,14 @@ export function CustomProjectWizard({
         </span>
         {discordButton}
       </div>
+      {cfg.intro && step === 0 && <p className="mb-2 text-sm text-zinc-300 leading-relaxed">{cfg.intro}</p>}
+      {(cfg.mode === 'limited' || cfg.note || cfg.startingPrice) && step === 0 && (
+        <p className="mb-4 text-[12px] text-zinc-400">
+          {cfg.startingPrice ? <>Custom pieces from <b className="text-white">${cfg.startingPrice}</b>. </> : null}
+          {cfg.mode === 'limited' && <span className="text-amber-300">Limited slots available. </span>}
+          {cfg.note}
+        </p>
+      )}
       <div className="grid grid-cols-4 gap-1.5 mb-8" aria-hidden="true">
         {STEPS.map((s, i) => (
           <div key={s} className="h-1 rounded-full bg-white/10 overflow-hidden">

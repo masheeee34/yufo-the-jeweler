@@ -21,6 +21,55 @@ export interface ClientRequest {
   expiresAt: string;
   status: 'pending' | 'answered' | 'closed';
   messages: ChatMessage[];
+  order?: OrderData;
+  project?: ProjectData;
+  ticketType?: 'custom' | 'order' | 'general';
+  linkedId?: string; // ticket relié à une commande ou un projet
+  internalNotes?: InternalNote[]; // jamais envoyées au client
+}
+
+// Statut de la commande (traitement) et statut du paiement sont séparés.
+export type OrderStatus = 'pending' | 'processing' | 'delivered' | 'cancelled';
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refunded';
+
+export interface OrderData {
+  items: { name: string; reference?: string; price: number; quantity: number; productId?: string }[];
+  total: number;
+  email?: string;
+  paymentMethod?: string;
+  status: OrderStatus;
+  paymentStatus: PaymentStatus;
+  amountPaid?: number;
+  updatedAt?: string;
+}
+
+export interface InternalNote {
+  id: string;
+  by: string;
+  at: string;
+  text: string;
+}
+
+export type ProjectStage = 'brief' | 'quoted' | 'in_progress' | 'preview' | 'approved' | 'delivered' | 'cancelled';
+
+export interface ProjectData {
+  stage: ProjectStage;
+  price?: number;
+  paymentStatus?: PaymentStatus;
+  amountPaid?: number;
+  priority?: boolean; // Priority delivery
+  strictOptimization?: boolean;
+  previews: { file: string; at: string; by: string }[]; // fichiers dans data/uploads
+  finalFiles: { label: string; url: string; at: string }[];
+  approvedAt?: string; // validation 3D par le client
+  updatedAt?: string;
+}
+
+// Commandes et projets acceptés ne s'effacent jamais ; seules les conversations et les briefs
+// restés sans suite disparaissent après leur délai (72 h).
+function isPermanent(r: ClientRequest) {
+  if (r.id.startsWith('YUF-ORD')) return true;
+  return !!r.project && r.project.stage !== 'brief' && r.project.stage !== 'cancelled';
 }
 
 const DB_PATH = path.join(process.cwd(), 'data', 'requests.json');
@@ -38,7 +87,7 @@ export function getRequests(): ClientRequest[] {
     const now = new Date().getTime();
 
     // Auto-prune 72 hours expiration
-    const active = items.filter((item) => new Date(item.expiresAt).getTime() > now);
+    const active = items.filter((item) => isPermanent(item) || new Date(item.expiresAt).getTime() > now);
     if (active.length !== items.length) {
       saveRequests(active);
     }

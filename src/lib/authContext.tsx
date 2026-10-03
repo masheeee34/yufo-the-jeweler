@@ -67,11 +67,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (data.user) {
             setUser(data.user);
             localStorage.setItem('yufo_collector_user', JSON.stringify(data.user));
-            return;
+          } else {
+            // Le serveur ne reconnaît pas de session : on ne garde pas un faux état connecté.
+            localStorage.removeItem('yufo_collector_user');
           }
+          return;
         }
 
-        // Fallback to localStorage
+        // Serveur injoignable : affichage provisoire du dernier profil connu.
         const saved = localStorage.getItem('yufo_collector_user');
         if (saved) {
           setUser(JSON.parse(saved));
@@ -92,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return;
     }
     try {
-      const res = await fetch(`/api/auth/inquiries?email=${encodeURIComponent(user.email)}&pseudo=${encodeURIComponent(user.pseudo)}`);
+      const res = await fetch('/api/auth/inquiries');
       if (res.ok) {
         const data = await res.json();
         setInquiries(data.inquiries || []);
@@ -176,7 +179,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const res = await fetch('/api/auth/me', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: user.id, ...updates }),
+        body: JSON.stringify(updates),
       });
       const data = await res.json();
       if (!res.ok || !data.success) {

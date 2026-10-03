@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getRequests, saveRequests, ClientRequest } from '../../../lib/requestsDb';
+import { getSessionUser } from '../../../lib/session';
+import { getProducts } from '../../../lib/productsDb';
 
 export async function POST(req: NextRequest) {
   try {
@@ -24,9 +26,34 @@ export async function POST(req: NextRequest) {
 
     const clientPseudo = pseudo || discordTag || email.split('@')[0] || 'Collector';
 
+    const sessionUser = getSessionUser(req);
+    // Le prix vient du catalogue du serveur, jamais de celui envoyé par le navigateur.
+    const catalog = getProducts();
+    const orderItems = items.map((it: any) => {
+      const p = catalog.find((c) => c.id === it.product?.id);
+      return {
+        name: String(p?.name || it.product?.name || 'Asset').slice(0, 120),
+        reference: p?.reference || (it.product?.reference ? String(it.product.reference).slice(0, 60) : undefined),
+        price: p ? p.price : 0,
+        quantity: Math.max(1, Math.min(99, Number(it.quantity) || 1)),
+        productId: p?.id,
+      };
+    });
+
     const orderRecord: ClientRequest = {
       id: orderId,
       pseudo: clientPseudo,
+      discordId: sessionUser?.discordId,
+      // Le paiement n'est pas encore encaissé automatiquement : l'atelier le marque « Paid » depuis Orders.
+      order: {
+        items: orderItems,
+        total: orderItems.reduce((sum: number, i: { price: number; quantity: number }) => sum + i.price * i.quantity, 0),
+        email: String(email).slice(0, 200),
+        paymentMethod: paymentMethod ? String(paymentMethod).slice(0, 80) : undefined,
+        status: 'pending',
+        paymentStatus: 'unpaid',
+        updatedAt: now.toISOString(),
+      },
       subject: `[Paid Allocation] ${itemsSummary} - Total: $${totalPrice}`,
       createdAt: now.toISOString(),
       expiresAt,

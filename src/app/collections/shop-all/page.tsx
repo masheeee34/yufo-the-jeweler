@@ -144,6 +144,19 @@ function CollectionsFilterGrid() {
   const [activeCollection, setActiveCollection] = useState<ProductCollection | null>(initialCollectionParam);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [productsList, setProductsList] = useState<Product[]>(YUFO_PRODUCTS);
+  // Catégories et collections telles que réglées dans le back-office (ordre, noms, visibilité).
+  const [cats, setCats] = useState<{ id: string; label: string }[]>(CATEGORIES_NAV.filter((c) => c.id !== 'all'));
+  const [cols, setCols] = useState<{ id: string; label: string; desc?: string }[]>(COLLECTIONS_NAV.filter((c) => c.id !== 'all'));
+
+  useEffect(() => {
+    fetch('/api/taxonomy')
+      .then((res) => res.json())
+      .then((t) => {
+        if (Array.isArray(t.categories)) setCats(t.categories);
+        if (Array.isArray(t.collections)) setCols(t.collections.map((c: { id: string; label: string; description?: string }) => ({ ...c, desc: c.description })));
+      })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     fetch('/api/products')
@@ -170,20 +183,20 @@ function CollectionsFilterGrid() {
 
   const currentTitle = useMemo(() => {
     if (activeCollection && activeCollection !== 'all') {
-      const col = COLLECTIONS_NAV.find((c) => c.id === activeCollection);
+      const col = cols.find((c) => c.id === activeCollection);
       return col ? col.label : 'Collection';
     }
-    const cat = CATEGORIES_NAV.find((c) => c.id === activeCategory);
+    const cat = cats.find((c) => c.id === activeCategory);
     return cat ? cat.label : 'All Creations';
-  }, [activeCategory, activeCollection]);
+  }, [activeCategory, activeCollection, cats, cols]);
 
   const currentSubtitle = useMemo(() => {
     if (activeCollection && activeCollection !== 'all') {
-      const col = COLLECTIONS_NAV.find((c) => c.id === activeCollection);
+      const col = cols.find((c) => c.id === activeCollection);
       return col?.desc || 'Exclusive high-jewelry archive sculpted for FiveM character models.';
     }
     return 'Shop every Yufo piece — diamond pendants, heavy chains, signet rings, and iced timepieces, each handcrafted and rigged for FiveM ped skeletons in our atelier.';
-  }, [activeCollection]);
+  }, [activeCollection, cols]);
 
   const handleInquiryFromProduct = (name: string) => {
     if (typeof window !== 'undefined') {
@@ -241,7 +254,7 @@ function CollectionsFilterGrid() {
             All Pieces
           </button>
 
-          {CATEGORIES_NAV.filter((c) => c.id !== 'all').map((cat) => (
+          {cats.map((cat) => (
             <button
               key={cat.id}
               onClick={() => {
@@ -260,7 +273,7 @@ function CollectionsFilterGrid() {
 
           <span className="text-[#33333d] select-none">/</span>
 
-          {COLLECTIONS_NAV.filter((c) => c.id !== 'all').map((col) => (
+          {cols.map((col) => (
             <button
               key={col.id}
               onClick={() => {

@@ -3,8 +3,11 @@
  * Handcrafted 3D Jewelry & Haute Horlogerie rigged for FiveM ped skeletons.
  */
 
-export type ProductCategory = 'all' | 'watches' | 'chains' | 'pendants' | 'rings' | 'studs';
-export type ProductCollection = 'all' | 'cathedral-of-dreams' | 'neo' | 'the-saint-mark' | 'essence';
+// Catégories et collections sont gérées depuis le back-office (data/taxonomy.json) : identifiants libres.
+export type ProductCategory = string;
+export type ProductCollection = string;
+
+export type ProductStatus = 'draft' | 'published' | 'hidden';
 
 export interface ProductSpec {
   material: string;
@@ -29,6 +32,12 @@ export interface Product {
   specs: ProductSpec;
   inStock: boolean;
   featured?: boolean;
+  status?: ProductStatus; // absent = publié (anciens articles)
+  tags?: string[];
+  sortOrder?: number;
+  allowSimilarProject?: boolean;
+  deletedAt?: string; // corbeille
+  updatedAt?: string;
 }
 
 export const CATEGORIES_NAV: { id: ProductCategory; label: string }[] = [

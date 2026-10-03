@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { upsertDiscordUser } from '../../../../lib/usersDb';
+import { createSession } from '../../../../lib/session';
 
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
 const GUILD_ID = '1449069547876516106';
@@ -105,13 +106,7 @@ export async function POST(req: NextRequest) {
       user: userProfile,
     });
 
-    response.cookies.set('yufo_auth_token', userProfile.id, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/',
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    });
+    createSession(req, response, userProfile.id);
 
     return response;
   } catch (error: any) {
