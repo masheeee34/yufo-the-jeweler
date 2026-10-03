@@ -14,6 +14,7 @@ import {
   IconCreditCard,
   IconDiamond,
   IconExternalLink,
+  IconFolder,
   IconHistory,
   IconLayoutDashboard,
   IconLogout,
@@ -102,6 +103,7 @@ export const AdminSidebar: React.FC<{ mobileOpen: boolean; onCloseMobile: () => 
       items: [
         { label: 'Creations', icon: IconDiamond, href: '/admin/creations', perm: 'store' },
         { label: 'Categories', icon: IconCategory, href: '/admin/categories', perm: 'store' },
+        { label: 'Files', icon: IconFolder, href: '/admin/files', perm: 'store' },
         { label: 'Reviews', icon: IconStar, href: '/admin/reviews', perm: 'reviews' },
       ],
     },

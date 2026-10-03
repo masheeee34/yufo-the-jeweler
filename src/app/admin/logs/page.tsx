@@ -10,7 +10,7 @@ interface Entry { id: string; at: string; by: string; role?: string; action: str
 
 const AREAS: Record<string, string> = {
   product: 'Creations', category: 'Categories', collection: 'Collections', review: 'Reviews', order: 'Orders', project: 'Custom projects',
-  ticket: 'Messages', note: 'Notes', customer: 'Customers', team: 'Team', invitation: 'Invitations', settings: 'Settings', security: 'Security',
+  ticket: 'Messages', note: 'Notes', file: 'Files', customer: 'Customers', team: 'Team', invitation: 'Invitations', settings: 'Settings', security: 'Security',
 };
 
 const ACTION_LABEL: Record<string, string> = {
@@ -20,6 +20,8 @@ const ACTION_LABEL: Record<string, string> = {
   remove: 'a retiré', join: 'a rejoint l’équipe', revoke: 'a révoqué', revoke_sessions: 'a déconnecté des sessions',
   verified_status: 'a changé le statut vérifié de', general: 'a modifié les réglages généraux', customOrders: 'a modifié les réglages custom',
   payments: 'a modifié les paiements', security: 'a modifié la sécurité',
+  upload: 'a ajouté le fichier', version: 'a remplacé (nouvelle version)', grant: 'a donné l’accès à', restore_access: 'a restauré l’accès à',
+  resend_access: 'a renvoyé l’accès de', deliver: 'a livré un fichier pour',
 };
 
 function Value({ v }: { v: unknown }) {

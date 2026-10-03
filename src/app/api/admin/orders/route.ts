@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { audit, requireAdmin } from '@/lib/team';
 import { getRequests, saveRequests, OrderStatus, PaymentStatus } from '@/lib/requestsDb';
 import { orderInfo, projectInfo, requestKind } from '@/lib/commerce';
+import { getGrants, grantForOrder, saveGrants } from '@/lib/filesDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -82,10 +83,24 @@ export async function PATCH(req: NextRequest) {
   r.order = next;
   saveRequests(requests);
 
+  // Achat payé → accès automatique aux fichiers ; remboursement → accès de cette commande révoqués.
+  let filesNote = '';
+  if (next.paymentStatus === 'paid' && before.paymentStatus !== 'paid') {
+    const { granted, owner } = grantForOrder(r, ctx.user.pseudo);
+    filesNote = owner ? `${granted} accès fichier(s) donné(s)` : 'aucun compte client relié : accès à donner à la main';
+  } else if (next.paymentStatus === 'refunded' && before.paymentStatus !== 'refunded') {
+    const grants = getGrants();
+    let n = 0;
+    for (const g of grants) if (g.refId === r.id && !g.revokedAt) { g.revokedAt = next.updatedAt; g.revokedBy = ctx.user.pseudo; n++; }
+    if (n) saveGrants(grants);
+    filesNote = `${n} accès fichier(s) révoqué(s)`;
+  }
+
   audit(ctx, 'order.update', {
     target: r.id,
     before: { status: before.status, paymentStatus: before.paymentStatus, amountPaid: before.amountPaid },
     after: { status: next.status, paymentStatus: next.paymentStatus, amountPaid: next.amountPaid },
+    detail: filesNote || undefined,
   });
-  return NextResponse.json({ success: true, order: next });
+  return NextResponse.json({ success: true, order: next, files: filesNote || undefined });
 }

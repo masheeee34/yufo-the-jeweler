@@ -15,7 +15,7 @@ interface Product {
   image: string; hoverImage?: string; shortDescription: string; fullDescription: string;
   specs: { material: string; stones: string; compatibility: string; delivery: string };
   inStock: boolean; featured?: boolean; status: 'draft' | 'published' | 'hidden'; tags?: string[]; sortOrder: number;
-  allowSimilarProject?: boolean; deletedAt?: string; updatedAt?: string;
+  allowSimilarProject?: boolean; deletedAt?: string; updatedAt?: string; fileIds?: string[];
 }
 interface TaxItem { id: string; label: string; deletedAt?: string }
 
@@ -180,6 +180,33 @@ export default function CreationsPage() {
   );
 }
 
+// Fichiers livrés automatiquement au client après achat de cette création.
+function FilePicker({ value, onChange }: { value: string[]; onChange: (ids: string[]) => void }) {
+  const { api } = useAdmin();
+  const [files, setFiles] = useState<{ id: string; name: string; deletedAt?: string; versions: { v: number; originalName: string }[] }[] | null>(null);
+  useEffect(() => { api<{ files: NonNullable<typeof files> }>('/api/admin/files', { silent: true }).then((d) => setFiles(d ? d.files.filter((x) => !x.deletedAt) : [])); }, [api]);
+  const toggle = (id: string) => onChange(value.includes(id) ? value.filter((x) => x !== id) : [...value, id]);
+  return (
+    <div className="rounded-xl border border-white/[0.07] p-4">
+      <p className="text-[13px] font-semibold text-white">Fichiers téléchargeables</p>
+      <p className="text-[11px] text-zinc-500 mb-3">Livrés automatiquement au client quand sa commande passe en « Paid ».</p>
+      {files === null ? <p className="text-[12px] text-zinc-500">Chargement…</p> : files.length === 0 ? (
+        <p className="text-[12px] text-zinc-500">Aucun fichier. <a href="/admin/files" className="underline hover:text-white">Ajoutez-en dans Files</a>.</p>
+      ) : (
+        <div className="max-h-48 overflow-y-auto space-y-1">
+          {files.map((x) => (
+            <label key={x.id} className="flex items-center gap-2.5 px-2 py-1.5 rounded-lg hover:bg-white/[0.04] cursor-pointer text-[13px]">
+              <input type="checkbox" checked={value.includes(x.id)} onChange={() => toggle(x.id)} className="w-4 h-4 accent-white" />
+              <span className="text-zinc-200 truncate flex-1">{x.name}</span>
+              <span className="text-[11px] text-zinc-500">v{x.versions[x.versions.length - 1].v}</span>
+            </label>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function IconBtn({ label, onClick, danger, children }: { label: string; onClick: () => void; danger?: boolean; children: React.ReactNode }) {
   return (
     <button onClick={onClick} title={label} aria-label={label} className={`adm-press w-9 h-9 rounded-lg flex items-center justify-center transition-colors ${danger ? 'text-zinc-500 hover:text-rose-300 hover:bg-rose-500/10' : 'text-zinc-400 hover:text-white hover:bg-white/[0.08]'}`}>
@@ -269,7 +296,7 @@ function Editor({ initial, tax, onSaved }: { initial: Partial<Product>; tax: { c
         <Toggle checked={f.allowSimilarProject !== false} onChange={(v) => set('allowSimilarProject', v)} label="Start a similar project" />
       </div>
 
-      <Card className="p-4 text-[12px] text-zinc-500">Fichiers téléchargeables (.ydd / .ytd / .zip) : à associer avec le File Manager, prochaine étape.</Card>
+      <FilePicker value={f.fileIds || []} onChange={(ids) => set('fileIds', ids)} />
 
       <div className="flex items-center justify-between pt-2">
         <span className="text-[11px] text-zinc-600">{f.updatedAt ? `Modifiée ${timeAgo(f.updatedAt)}` : ''}</span>

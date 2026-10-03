@@ -36,6 +36,7 @@ export interface Product {
   tags?: string[];
   sortOrder?: number;
   allowSimilarProject?: boolean;
+  fileIds?: string[]; // fichiers livrables (File Manager)
   deletedAt?: string; // corbeille
   updatedAt?: string;
 }

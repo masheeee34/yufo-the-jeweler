@@ -7,6 +7,42 @@ import { IconSearch, IconUsers, IconX } from '@tabler/icons-react';
 import { useAdmin } from '@/components/admin/AdminContext';
 import { Avatar, Badge, Button, Card, Drawer, Empty, Field, fullDate, Input, Loading, money, NotesBox, PageHeader, Select, timeAgo } from '@/components/admin/ui';
 import { ORDER, PAYMENT, STAGE, TICKET } from '@/components/admin/labels';
+import { GrantList, GrantRow } from '@/components/admin/GrantList';
+
+// Fichiers possédés : accès du File Manager (révocables) + anciens liens livrés dans les projets.
+function CustomerFiles({ userId, links }: { userId: string; links: { label: string; url: string; projectId: string }[] }) {
+  const { api, toast, can } = useAdmin();
+  const [grants, setGrants] = useState<GrantRow[] | null>(null);
+  const [files, setFiles] = useState<{ id: string; name: string; deletedAt?: string }[]>([]);
+  const [sel, setSel] = useState('');
+  const load = useCallback(async () => {
+    const d = await api<{ grants: GrantRow[] }>(`/api/admin/files/grants?userId=${userId}`, { silent: true });
+    setGrants(d ? d.grants : []);
+  }, [api, userId]);
+  useEffect(() => {
+    load();
+    if (can('store')) api<{ files: typeof files }>('/api/admin/files', { silent: true }).then((d) => d && setFiles(d.files.filter((f) => !f.deletedAt)));
+  }, [load, api, can]);
+  return (
+    <section>
+      <h3 className="text-[12px] uppercase tracking-wider text-zinc-500 mb-1.5">Fichiers possédés</h3>
+      {grants === null ? <Loading /> : <GrantList grants={grants} show="customer" onChanged={load} />}
+      {links.map((f, i) => <a key={i} href={f.url} target="_blank" rel="noreferrer" className="block py-1.5 text-[13px] text-sky-300 hover:underline">{f.label} <span className="text-zinc-500">· lien · {f.projectId}</span></a>)}
+      {files.length > 0 && (
+        <div className="mt-2 flex gap-2">
+          <Select value={sel} onChange={(e) => setSel(e.target.value)} className="h-9">
+            <option value="">Attribuer un fichier à ce client…</option>
+            {files.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+          </Select>
+          <Button size="sm" disabled={!sel} onClick={async () => {
+            const r = await api<{ changed: boolean }>('/api/admin/files/grants', { method: 'POST', body: { fileId: sel, userId } });
+            if (r) { toast(r.changed ? 'Fichier attribué' : 'Le client y a déjà accès'); setSel(''); await load(); }
+          }}>Attribuer</Button>
+        </div>
+      )}
+    </section>
+  );
+}
 
 interface Customer {
   id: string; pseudo: string; email?: string; discordId?: string; discordTag?: string; avatar?: string; fivemId?: string;
@@ -177,11 +213,7 @@ function CustomerDetail({ id, onChanged }: { id: string; onChanged: () => Promis
         ))}
       </Section>
 
-      <Section title={`Fichiers possédés (${d.files.length})`}>
-        {d.files.length === 0 ? <p className="text-[12px] text-zinc-500">Aucun fichier livré pour l’instant.</p> : d.files.map((f, i) => (
-          <a key={i} href={f.url} target="_blank" rel="noreferrer" className="block py-1.5 text-[13px] text-sky-300 hover:underline">{f.label} <span className="text-zinc-500">· {f.projectId}</span></a>
-        ))}
-      </Section>
+      <CustomerFiles userId={c.id} links={d.files.filter((f) => /^https?:/.test(f.url))} />
 
       <Section title={`Tickets (${d.tickets.length})`}>
         {d.tickets.length === 0 ? <p className="text-[12px] text-zinc-500">Aucun.</p> : d.tickets.map((t) => (

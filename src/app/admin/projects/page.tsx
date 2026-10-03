@@ -119,6 +119,26 @@ export default function ProjectsPage() {
   );
 }
 
+// Livrer un fichier du File Manager : le client le retrouve dans « My files ».
+function DeliverFromFiles({ projectId, onDone }: { projectId: string; onDone: () => Promise<void> }) {
+  const { api, toast, can } = useAdmin();
+  const [files, setFiles] = useState<{ id: string; name: string; deletedAt?: string }[]>([]);
+  const [sel, setSel] = useState('');
+  useEffect(() => { if (can('store')) api<{ files: typeof files }>('/api/admin/files', { silent: true }).then((d) => d && setFiles(d.files.filter((f) => !f.deletedAt))); }, [api, can]);
+  if (!can('store')) return null;
+  return (
+    <div className="mt-4 pt-4 border-t border-white/[0.06] flex flex-col sm:flex-row gap-2">
+      <Select value={sel} onChange={(e) => setSel(e.target.value)}>
+        <option value="">Ou livrer un fichier du File Manager…</option>
+        {files.map((f) => <option key={f.id} value={f.id}>{f.name}</option>)}
+      </Select>
+      <Button variant="primary" disabled={!sel} onClick={async () => {
+        if (await api('/api/admin/files/grants', { method: 'POST', body: { fileId: sel, projectId } })) { toast('Fichier livré au client'); setSel(''); await onDone(); }
+      }}>Livrer le fichier</Button>
+    </div>
+  );
+}
+
 function ProjectDetail({ p, patch, action, reloadNotes }: {
   p: ProjectRow;
   patch: (b: Record<string, unknown>, label?: string) => Promise<void>;
@@ -229,7 +249,8 @@ function ProjectDetail({ p, patch, action, reloadNotes }: {
           <Input value={final.url} onChange={(e) => setFinal({ ...final, url: e.target.value })} placeholder="Lien de téléchargement (https://…)" />
           <Button variant="primary" disabled={!/^https?:\/\//.test(final.url)} onClick={async () => { if (await action({ action: 'final', label: final.label, url: final.url }, 'Fichiers livrés au client')) setFinal({ ...final, url: '' }); }}>Livrer</Button>
         </div>
-        <p className="text-[11px] text-zinc-600 mt-2">Le lien est envoyé au client dans la conversation et le projet passe en « Delivered ». L’upload direct des .ydd / .ytd arrive avec le File Manager.</p>
+        <p className="text-[11px] text-zinc-600 mt-2">Le lien est envoyé au client dans la conversation et le projet passe en « Delivered ».</p>
+        <DeliverFromFiles projectId={p.id} onDone={reloadNotes} />
       </section>
 
       {/* Conversation */}

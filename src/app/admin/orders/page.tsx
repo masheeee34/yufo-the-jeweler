@@ -7,6 +7,33 @@ import { IconPackage, IconSearch } from '@tabler/icons-react';
 import { useAdmin } from '@/components/admin/AdminContext';
 import { Badge, Button, Card, Drawer, Empty, Field, fullDate, Input, Loading, money, NotesBox, PageHeader, Select, Tabs, timeAgo } from '@/components/admin/ui';
 import { ORDER, PAYMENT, STAGE } from '@/components/admin/labels';
+import { GrantList, GrantRow } from '@/components/admin/GrantList';
+
+// Fichiers auxquels le client de cette commande a accès, avec renvoi de l'accès.
+function OrderFiles({ orderId }: { orderId: string }) {
+  const { api, toast, can } = useAdmin();
+  const [grants, setGrants] = useState<GrantRow[] | null>(null);
+  const load = useCallback(async () => {
+    const d = await api<{ grants: GrantRow[] }>(`/api/admin/files/grants?refId=${orderId}`, { silent: true });
+    setGrants(d ? d.grants : []);
+  }, [api, orderId]);
+  useEffect(() => { load(); }, [load]);
+  return (
+    <Card className="p-4">
+      <div className="flex items-center justify-between gap-3 mb-2">
+        <p className="text-[13px] font-semibold text-white">Fichiers du client</p>
+        {can('orders') && (
+          <Button size="sm" onClick={async () => {
+            const d = await api<{ granted: number }>('/api/admin/files/grants', { method: 'POST', body: { orderId } });
+            if (d) { toast(d.granted ? `${d.granted} accès donné(s), client prévenu` : 'Accès déjà actifs, client prévenu'); await load(); }
+          }}>Renvoyer l’accès</Button>
+        )}
+      </div>
+      <p className="text-[11px] text-zinc-500 mb-2">Donnés automatiquement quand la commande passe en « Paid », révoqués si elle est remboursée.</p>
+      {grants === null ? <Loading /> : <GrantList grants={grants} show="customer" onChanged={load} />}
+    </Card>
+  );
+}
 
 interface OrderRow {
   id: string;
@@ -171,10 +198,7 @@ export default function OrdersPage() {
               </Card>
             )}
 
-            <Card className="p-4">
-              <p className="text-[13px] font-semibold text-white">Fichiers et accès au téléchargement</p>
-              <p className="text-[12px] text-zinc-500 mt-1">L’accès automatique aux fichiers après achat, le renvoi du lien et la révocation arrivent avec le File Manager (prochaine étape).</p>
-            </Card>
+            <OrderFiles orderId={open.id} />
 
             <NotesBox
               notes={open.notes}

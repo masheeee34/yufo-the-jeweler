@@ -103,7 +103,9 @@ export const UserMenu: React.FC<{ onOpenAccount?: () => void }> = ({ onOpenAccou
   }
 
   const close = () => setOpen(false);
-  const subtitle = user.email || (user.discordTag ? `@${user.discordTag}` : '');
+  // Les comptes Discord sans email reçoivent une adresse technique « …@discord.user » : on affiche le pseudo Discord à la place.
+  const realEmail = user.email && !user.email.endsWith('@discord.user') ? user.email : '';
+  const subtitle = realEmail || (user.discordTag ? `@${user.discordTag}` : '');
 
   return (
     <div ref={rootRef} className="relative">

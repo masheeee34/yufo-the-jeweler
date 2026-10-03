@@ -237,3 +237,30 @@ export async function uploadImages(files: FileList | File[]): Promise<string[]> 
   }
   return names;
 }
+
+export const fileSize = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} Mo` : `${Math.max(1, Math.round(n / 1024))} Ko`);
+
+// Envoi d'un fichier livrable vers le File Manager, avec progression (0 → 1).
+export function uploadDeliverable(
+  file: File,
+  opts: { fileId?: string; name?: string; note?: string },
+  onProgress: (p: number) => void
+): Promise<{ ok: boolean; data: any }> {
+  return new Promise((resolve) => {
+    const q = new URLSearchParams({ filename: file.name });
+    if (opts.fileId) q.set('fileId', opts.fileId);
+    if (opts.name) q.set('name', opts.name);
+    if (opts.note) q.set('note', opts.note);
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', `/api/admin/files/upload?${q}`);
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.upload.onprogress = (e) => e.lengthComputable && onProgress(e.loaded / e.total);
+    xhr.onload = () => {
+      let data: any = {};
+      try { data = JSON.parse(xhr.responseText); } catch {}
+      resolve({ ok: xhr.status >= 200 && xhr.status < 300, data: xhr.status === 413 && !data.error ? { error: 'Fichier trop lourd (100 Mo maximum).' } : data });
+    };
+    xhr.onerror = () => resolve({ ok: false, data: { error: 'Envoi interrompu.' } });
+    xhr.send(file);
+  });
+}

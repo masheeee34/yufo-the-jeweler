@@ -9,6 +9,7 @@ import { AuthProvider } from '../../lib/authContext';
 import { AlexMossHeader } from '../../components/AlexMossHeader';
 import { AlexMossChat } from '../../components/AlexMossChat';
 import { UserAvatar } from '../../components/UserMenu';
+import { LoaderOne } from '../../components/LoaderOne';
 import {
   User,
   Mail,
@@ -25,16 +26,53 @@ import {
   MessageSquare,
 } from 'lucide-react';
 
+// Fichiers achetés ou livrés : téléchargement de la dernière version.
+function MyFiles() {
+  const [files, setFiles] = useState<{ id: string; name: string; description?: string; version: number; fileName: string; size: number; updatedAt: string }[] | null>(null);
+  useEffect(() => {
+    fetch('/api/files')
+      .then((r) => r.json())
+      .then((d) => setFiles(d.files || []))
+      .catch(() => setFiles([]));
+  }, []);
+  const size = (n: number) => (n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+  if (files === null) return <div className="py-16 flex justify-center"><LoaderOne /></div>;
+  if (files.length === 0) {
+    return (
+      <div className="p-10 bg-zinc-950 border border-white/10 rounded-2xl text-center">
+        <p className="text-sm text-zinc-200 font-semibold">No files yet</p>
+        <p className="text-xs text-zinc-500 mt-1">Your .ydd / .ytd files appear here as soon as your order is confirmed.</p>
+      </div>
+    );
+  }
+  return (
+    <div className="space-y-3">
+      {files.map((f) => (
+        <div key={f.id} className="p-5 bg-zinc-950 border border-white/10 rounded-2xl flex items-center gap-4">
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-white truncate">{f.name}</p>
+            <p className="text-xs text-zinc-500 mt-0.5 truncate">{f.fileName} · {size(f.size)} · v{f.version} · updated {new Date(f.updatedAt).toLocaleDateString()}</p>
+            {f.description && <p className="text-xs text-zinc-400 mt-1">{f.description}</p>}
+          </div>
+          <a href={`/api/files/${f.id}`} className="shrink-0 h-10 px-5 rounded-full bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold flex items-center gap-2 transition-colors">
+            Download
+          </a>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function AccountPageContent() {
   const { user, login, register, logout, updateProfile, inquiries, refreshInquiries } = useAuth();
 
   // Tab when logged in: 'overview' | 'commissions' | 'settings'
-  const [activeTab, setActiveTab] = useState<'overview' | 'commissions' | 'settings'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'commissions' | 'files' | 'settings'>('overview');
 
   // Ouvre directement l'onglet demandé depuis le menu du compte (/account?tab=settings)
   useEffect(() => {
     const tab = new URLSearchParams(window.location.search).get('tab');
-    if (tab === 'commissions' || tab === 'settings' || tab === 'overview') setActiveTab(tab);
+    if (tab === 'commissions' || tab === 'settings' || tab === 'overview' || tab === 'files') setActiveTab(tab);
   }, []);
 
   // Auth form state when logged out
@@ -147,7 +185,7 @@ function AccountPageContent() {
                     </span>
                   </div>
                   <p className="text-sm text-zinc-400 mt-1">
-                    {user.email}
+                    {user.email && !user.email.endsWith('@discord.user') ? user.email : user.discordTag ? `@${user.discordTag}` : ''}
                   </p>
                 </div>
               </div>
@@ -162,7 +200,7 @@ function AccountPageContent() {
             </div>
 
             {/* Segmented Navigation */}
-            <div className="flex p-1.5 bg-zinc-950 border border-white/10 rounded-2xl max-w-md">
+            <div className="flex p-1.5 bg-zinc-950 border border-white/10 rounded-2xl max-w-lg">
               <button
                 onClick={() => {
                   setActiveTab('overview');
@@ -194,6 +232,19 @@ function AccountPageContent() {
                     {inquiries.length}
                   </span>
                 )}
+              </button>
+              <button
+                onClick={() => {
+                  setActiveTab('files');
+                  setErrorMsg('');
+                }}
+                className={`flex-1 py-2 text-xs font-semibold rounded-xl transition-all cursor-pointer ${
+                  activeTab === 'files'
+                    ? 'bg-zinc-800 text-white shadow-sm'
+                    : 'text-zinc-400 hover:text-white'
+                }`}
+              >
+                My files
               </button>
               <button
                 onClick={() => {
@@ -369,6 +420,9 @@ function AccountPageContent() {
                 )}
               </div>
             )}
+
+            {/* TAB : MY FILES */}
+            {activeTab === 'files' && <MyFiles />}
 
             {/* TAB 3: SETTINGS */}
             {activeTab === 'settings' && (

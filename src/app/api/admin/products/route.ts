@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { audit, diff, requireAdmin } from '@/lib/team';
 import { getProducts, addProduct, updateProduct, saveProducts } from '@/lib/productsDb';
 import { Product, ProductStatus } from '@/lib/products';
+import { getFiles } from '@/lib/filesDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -28,6 +29,10 @@ function pickEditable(body: any): Partial<Product> {
   if (body.tags !== undefined) {
     const list = Array.isArray(body.tags) ? body.tags : String(body.tags).split(',');
     out.tags = [...new Set<string>(list.map((t: unknown) => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, 15);
+  }
+  if (Array.isArray(body.fileIds)) {
+    const known = new Set(getFiles().filter((f) => !f.deletedAt).map((f) => f.id));
+    out.fileIds = [...new Set<string>(body.fileIds.map(String))].filter((id) => known.has(id));
   }
   if (body.specs && typeof body.specs === 'object') {
     out.specs = {

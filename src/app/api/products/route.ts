@@ -10,7 +10,8 @@ export async function GET() {
       .map((p, i) => ({ p, order: p.sortOrder ?? i }))
       .filter(({ p }) => (p.status || 'published') === 'published' && !p.deletedAt)
       .sort((a, b) => a.order - b.order)
-      .map(({ p }) => p);
+      // Les fichiers livrables ne sont jamais exposés publiquement.
+      .map(({ p }) => { const { fileIds: _f, ...pub } = p; return pub; });
     return NextResponse.json({ products });
   } catch (error) {
     console.error('Error fetching products:', error);
