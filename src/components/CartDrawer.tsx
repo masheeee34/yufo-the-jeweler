@@ -21,6 +21,13 @@ import {
 export const CartDrawer: React.FC = () => {
   const { items, isCartOpen, setIsCartOpen, removeFromCart, updateQuantity, totalPrice, clearCart } = useCart();
   const { user } = useAuth();
+  // Réduction personnelle (le serveur l'applique aussi à la commande).
+  const [discount, setDiscount] = useState(0);
+  useEffect(() => {
+    if (!user || !isCartOpen) return;
+    fetch('/api/me/notifications').then((r) => r.json()).then((d) => setDiscount(Number(d.discountPercent) || 0)).catch(() => {});
+  }, [user, isCartOpen]);
+  const finalPrice = Math.round(totalPrice * (1 - discount / 100) * 100) / 100;
 
   // Form states
   const [email, setEmail] = useState('');
@@ -522,9 +529,15 @@ export const CartDrawer: React.FC = () => {
                   <span>Delivery method</span>
                   <span className="text-white">Instant encrypted digital package</span>
                 </div>
+                {discount > 0 && (
+                  <div className="flex justify-between text-emerald-400">
+                    <span>Your personal discount (-{discount}%)</span>
+                    <span>-${(totalPrice - finalPrice).toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="border-t border-white/10 pt-2 flex justify-between text-sm font-semibold text-white">
                   <span>Total</span>
-                  <span>${totalPrice.toLocaleString()}</span>
+                  <span>${finalPrice.toLocaleString()}</span>
                 </div>
               </div>
 
@@ -535,7 +548,7 @@ export const CartDrawer: React.FC = () => {
                 disabled={isProcessing}
                 className="w-full h-12 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs rounded-full transition-all flex items-center justify-center gap-2 cursor-pointer shadow-lg disabled:opacity-50"
               >
-                <span>{isProcessing ? 'Processing allocation...' : `Complete allocation · $${totalPrice.toLocaleString()}`}</span>
+                <span>{isProcessing ? 'Processing allocation...' : `Complete allocation · $${finalPrice.toLocaleString()}`}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </button>
 

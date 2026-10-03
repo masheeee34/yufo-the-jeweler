@@ -7,14 +7,13 @@ import { useAuth } from '../lib/authContext';
 import { useCart } from '../lib/cartContext';
 import { SearchOverlay } from './SearchOverlay';
 import { UserMenu } from './UserMenu';
+import { NotificationBell } from './NotificationBell';
 import { AnnouncementBar } from './AnnouncementBar';
 import { DISCORD_INVITE } from './CustomProjectWizard';
 import {
   IconSearch,
   IconShoppingBag,
   IconX,
-  IconPlus,
-  IconMinus,
   IconMessageCircle,
 } from '@tabler/icons-react';
 
@@ -83,11 +82,6 @@ export const AlexMossHeader: React.FC<AlexMossHeaderProps> = ({
               aria-label="Shop Menu"
             >
               <span>Creations</span>
-              {meganavOpen ? (
-                <IconMinus size={13} stroke={1.5} className="text-white" />
-              ) : (
-                <IconPlus size={13} stroke={1.5} className="text-[#888888]" />
-              )}
             </button>
 
             {/* Custom Orders Link */}
@@ -147,6 +141,9 @@ export const AlexMossHeader: React.FC<AlexMossHeaderProps> = ({
             >
               <IconSearch size={18} stroke={1.5} />
             </button>
+
+            {/* Notifications du client */}
+            <NotificationBell />
 
             {/* Cart / Allocations Bag Button */}
             <button

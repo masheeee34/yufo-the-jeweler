@@ -37,6 +37,8 @@ export interface Product {
   sortOrder?: number;
   allowSimilarProject?: boolean;
   fileIds?: string[]; // fichiers livrables (File Manager)
+  gallery?: string[]; // images supplémentaires du carrousel
+  details?: { title: string; content: string }[]; // sections dépliables de la fiche produit
   deletedAt?: string; // corbeille
   updatedAt?: string;
 }

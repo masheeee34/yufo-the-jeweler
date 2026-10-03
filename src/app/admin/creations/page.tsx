@@ -16,6 +16,7 @@ interface Product {
   specs: { material: string; stones: string; compatibility: string; delivery: string };
   inStock: boolean; featured?: boolean; status: 'draft' | 'published' | 'hidden'; tags?: string[]; sortOrder: number;
   allowSimilarProject?: boolean; deletedAt?: string; updatedAt?: string; fileIds?: string[];
+  gallery?: string[]; details?: { title: string; content: string }[];
 }
 interface TaxItem { id: string; label: string; deletedAt?: string }
 
@@ -180,6 +181,91 @@ export default function CreationsPage() {
   );
 }
 
+// Photos supplémentaires du carrousel de la fiche produit (la photo principale reste en premier).
+function GalleryEditor({ value, onChange }: { value: string[]; onChange: (g: string[]) => void }) {
+  const { toast } = useAdmin();
+  const [busy, setBusy] = useState(false);
+  const ref = useRef<HTMLInputElement>(null);
+  const move = (i: number, d: -1 | 1) => {
+    const j = i + d;
+    if (j < 0 || j >= value.length) return;
+    const next = [...value];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+  return (
+    <div className="rounded-xl border border-white/[0.07] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-[13px] font-semibold text-white">Galerie photos</p>
+          <p className="text-[11px] text-zinc-500">Photos en plus de l’image principale, dans le carrousel de la fiche produit.</p>
+        </div>
+        <input ref={ref} type="file" accept="image/*" multiple hidden onChange={async (e) => {
+          if (!e.target.files?.length) return;
+          setBusy(true);
+          const names = await uploadImages(e.target.files);
+          setBusy(false);
+          if (names.length) onChange([...value, ...names.map((n) => `/api/uploads/${n}`)].slice(0, 12));
+          else toast('Images refusées', 'error');
+          e.target.value = '';
+        }} />
+        <Button size="sm" icon={<IconPhotoPlus size={14} />} disabled={busy || value.length >= 12} onClick={() => ref.current?.click()}>{busy ? 'Envoi…' : 'Ajouter'}</Button>
+      </div>
+      {value.length === 0 ? <p className="text-[12px] text-zinc-500">Aucune photo supplémentaire.</p> : (
+        <div className="flex flex-wrap gap-2">
+          {value.map((src, i) => (
+            <div key={src + i} className="group relative w-20 h-20 rounded-lg overflow-hidden border border-white/10 bg-black/40">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={src} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
+                <button onClick={() => move(i, -1)} className="w-6 h-6 rounded bg-white/15 text-white text-xs" aria-label="Avant">‹</button>
+                <button onClick={() => onChange(value.filter((_, n) => n !== i))} className="w-6 h-6 rounded bg-rose-500/70 text-white text-xs" aria-label="Retirer">✕</button>
+                <button onClick={() => move(i, 1)} className="w-6 h-6 rounded bg-white/15 text-white text-xs" aria-label="Après">›</button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Sections dépliables de la fiche produit (titre + texte), à droite des photos.
+function DetailsEditor({ value, onChange }: { value: { title: string; content: string }[]; onChange: (d: { title: string; content: string }[]) => void }) {
+  const update = (i: number, k: 'title' | 'content', v: string) => onChange(value.map((d, n) => (n === i ? { ...d, [k]: v } : d)));
+  const move = (i: number, d: -1 | 1) => {
+    const j = i + d;
+    if (j < 0 || j >= value.length) return;
+    const next = [...value];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+  return (
+    <div className="rounded-xl border border-white/[0.07] p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-[13px] font-semibold text-white">Informations de la fiche produit</p>
+          <p className="text-[11px] text-zinc-500">Sections dépliables à droite des photos. Vide = description et caractéristiques automatiques.</p>
+        </div>
+        <Button size="sm" icon={<IconPlus size={14} />} disabled={value.length >= 12} onClick={() => onChange([...value, { title: '', content: '' }])}>Section</Button>
+      </div>
+      <div className="space-y-3">
+        {value.map((d, i) => (
+          <div key={i} className="rounded-lg bg-black/25 border border-white/[0.06] p-3 space-y-2">
+            <div className="flex gap-2">
+              <Input value={d.title} onChange={(e) => update(i, 'title', e.target.value)} placeholder="Titre (ex. Installation, Compatibilité…)" className="h-9" />
+              <button onClick={() => move(i, -1)} className="w-9 h-9 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.08] shrink-0" aria-label="Monter">↑</button>
+              <button onClick={() => move(i, 1)} className="w-9 h-9 rounded-lg text-zinc-500 hover:text-white hover:bg-white/[0.08] shrink-0" aria-label="Descendre">↓</button>
+              <button onClick={() => onChange(value.filter((_, n) => n !== i))} className="w-9 h-9 rounded-lg text-zinc-500 hover:text-rose-300 hover:bg-rose-500/10 shrink-0" aria-label="Supprimer"><IconTrash size={15} className="mx-auto" /></button>
+            </div>
+            <Textarea rows={3} value={d.content} onChange={(e) => update(i, 'content', e.target.value)} placeholder="Texte de la section" />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // Fichiers livrés automatiquement au client après achat de cette création.
 function FilePicker({ value, onChange }: { value: string[]; onChange: (ids: string[]) => void }) {
   const { api } = useAdmin();
@@ -296,6 +382,8 @@ function Editor({ initial, tax, onSaved }: { initial: Partial<Product>; tax: { c
         <Toggle checked={f.allowSimilarProject !== false} onChange={(v) => set('allowSimilarProject', v)} label="Start a similar project" />
       </div>
 
+      <GalleryEditor value={f.gallery || []} onChange={(g) => set('gallery', g)} />
+      <DetailsEditor value={f.details || []} onChange={(d) => set('details', d)} />
       <FilePicker value={f.fileIds || []} onChange={(ids) => set('fileIds', ids)} />
 
       <div className="flex items-center justify-between pt-2">

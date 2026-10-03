@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getRequests, saveRequests, ClientRequest } from '../../../lib/requestsDb';
 import { getSessionUser } from '../../../lib/session';
 import { getProducts } from '../../../lib/productsDb';
+import { getCustomerRecord } from '../../../lib/customersDb';
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { items, email, discordTag, fivemId, paymentMethod, totalPrice, pseudo } = body;
+    const { items, email, discordTag, fivemId, paymentMethod, pseudo } = body;
 
     if (!items || items.length === 0) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
@@ -20,25 +21,30 @@ export async function POST(req: NextRequest) {
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
 
-    const itemsSummary = items
-      .map((it: any) => `${it.quantity}x ${it.product?.name || 'Asset'} ($${it.product?.price || 0})`)
-      .join(', ');
-
     const clientPseudo = pseudo || discordTag || email.split('@')[0] || 'Collector';
 
     const sessionUser = getSessionUser(req);
     // Le prix vient du catalogue du serveur, jamais de celui envoyé par le navigateur.
     const catalog = getProducts();
+    const buyable = (id: unknown) => catalog.find((c) => c.id === id && (c.status || 'published') === 'published' && !c.deletedAt);
+    if (!Array.isArray(items) || items.some((it: any) => !buyable(it?.product?.id))) {
+      return NextResponse.json({ error: 'One of the pieces in your cart is no longer available.' }, { status: 400 });
+    }
     const orderItems = items.map((it: any) => {
-      const p = catalog.find((c) => c.id === it.product?.id);
+      const p = buyable(it.product.id)!;
       return {
-        name: String(p?.name || it.product?.name || 'Asset').slice(0, 120),
-        reference: p?.reference || (it.product?.reference ? String(it.product.reference).slice(0, 60) : undefined),
-        price: p ? p.price : 0,
+        name: p.name,
+        reference: p.reference,
+        price: p.price,
         quantity: Math.max(1, Math.min(99, Number(it.quantity) || 1)),
-        productId: p?.id,
+        productId: p.id,
       };
     });
+
+    // Réduction personnelle du client connecté (donnée depuis Management › Customers), calculée par le serveur.
+    const subtotal = orderItems.reduce((sum: number, i: { price: number; quantity: number }) => sum + i.price * i.quantity, 0);
+    const discountPercent = sessionUser ? getCustomerRecord(sessionUser.id).discountPercent || 0 : 0;
+    const total = Math.round(subtotal * (1 - discountPercent / 100) * 100) / 100;
 
     const orderRecord: ClientRequest = {
       id: orderId,
@@ -47,14 +53,15 @@ export async function POST(req: NextRequest) {
       // Le paiement n'est pas encore encaissé automatiquement : l'atelier le marque « Paid » depuis Orders.
       order: {
         items: orderItems,
-        total: orderItems.reduce((sum: number, i: { price: number; quantity: number }) => sum + i.price * i.quantity, 0),
+        total,
+        ...(discountPercent ? { subtotal, discountPercent } : {}),
         email: String(email).slice(0, 200),
         paymentMethod: paymentMethod ? String(paymentMethod).slice(0, 80) : undefined,
         status: 'pending',
         paymentStatus: 'unpaid',
         updatedAt: now.toISOString(),
       },
-      subject: `[Paid Allocation] ${itemsSummary} - Total: $${totalPrice}`,
+      subject: `[Order] ${orderItems.map((i: { quantity: number; name: string; price: number }) => `${i.quantity}x ${i.name} ($${i.price})`).join(', ')} - Total: $${total}${discountPercent ? ` (-${discountPercent}%)` : ''}`,
       createdAt: now.toISOString(),
       expiresAt,
       status: 'answered',
@@ -62,7 +69,7 @@ export async function POST(req: NextRequest) {
         {
           id: `msg_${Date.now()}_1`,
           sender: 'client',
-          text: `CLIENT: ${clientPseudo}\nEMAIL: ${email}\nDISCORD: ${discordTag || 'N/A'}\nFIVEM CFX ID: ${fivemId || 'Auto-Allocated'}\nPAYMENT METHOD: ${paymentMethod || 'Credit Card'}\nTOTAL: $${totalPrice}\n\nALLOCATED ASSETS:\n${items.map((i: any) => `- ${i.quantity}x ${i.product?.name} (Ref: ${i.product?.reference || 'N/A'}, Price: $${i.product?.price})`).join('\n')}`,
+          text: `CLIENT: ${clientPseudo}\nEMAIL: ${email}\nDISCORD: ${discordTag || 'N/A'}\nFIVEM CFX ID: ${fivemId || 'Auto-Allocated'}\nPAYMENT METHOD: ${paymentMethod || 'Credit Card'}\nTOTAL: $${total}${discountPercent ? ` (-${discountPercent}%)` : ''}\n\nALLOCATED ASSETS:\n${orderItems.map((i: { quantity: number; name: string; reference?: string; price: number }) => `- ${i.quantity}x ${i.name} (Ref: ${i.reference || 'N/A'}, Price: $${i.price})`).join('\n')}`,
           createdAt: now.toISOString(),
         },
         {

@@ -187,7 +187,7 @@ function CustomerDetail({ id, onChanged }: { id: string; onChanged: () => Promis
             <Button size="sm" disabled={!newTag.trim()} onClick={() => { save({ tags: [...tags, newTag.trim()] }, 'Tag ajouté'); setNewTag(''); }}>Ajouter</Button>
           </div>
         </Field>
-        <Field label="Remise personnelle (%)" hint="Appliquée automatiquement avec le module Discounts (prochaine étape).">
+        <Field label="Remise personnelle (%)" hint="Appliquée automatiquement à ses commandes. Le client est prévenu et la découvre en grattant une carte.">
           <Input type="number" min={0} max={90} defaultValue={d.record.discountPercent ?? ''} key={d.record.discountPercent} onBlur={(e) => e.target.value !== String(d.record.discountPercent ?? '') && save({ discountPercent: e.target.value || 0 }, 'Remise enregistrée')} className="h-9" />
         </Field>
       </section>

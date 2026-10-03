@@ -2,12 +2,12 @@
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
 import { SiteFooter } from '../../../components/SiteFooter';
+import { ProductDetailModal } from '../../../components/ProductDetailModal';
 import { LoaderOne } from '../../../components/LoaderOne';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import {
-  YUFO_PRODUCTS,
   Product,
   ProductCategory,
   ProductCollection,
@@ -20,120 +20,7 @@ import { AccountModal } from '../../../components/AccountModal';
 import { CartDrawer } from '../../../components/CartDrawer';
 import { AuthProvider } from '../../../lib/authContext';
 import { CartProvider, useCart } from '../../../lib/cartContext';
-import {
-  IconX,
-  IconArrowRight,
-  IconSparkles,
-  IconShoppingBag,
-} from '@tabler/icons-react';
 
-function ProductInspectionModal({
-  product,
-  onClose,
-  onSelectForInquiry,
-}: {
-  product: Product;
-  onClose: () => void;
-  onSelectForInquiry: (productName: string) => void;
-}) {
-  const { addToCart } = useCart();
-
-  const handleAcquire = () => {
-    addToCart(product);
-    onClose();
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-black/85 backdrop-blur-md select-none font-sans animate-in fade-in duration-200">
-      <div className="bg-zinc-950 border border-white/10 rounded-2xl w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 overflow-hidden shadow-[0_25px_80px_rgba(0,0,0,0.95)] relative">
-        {/* Close Button */}
-        <button
-          onClick={onClose}
-          className="absolute top-4 right-4 z-20 w-8 h-8 rounded-lg text-zinc-400 hover:text-white hover:bg-white/5 flex items-center justify-center transition-colors cursor-pointer"
-          aria-label="Close Inspection"
-        >
-          <IconX size={18} stroke={1.5} />
-        </button>
-
-        {/* Left: 1:1 Clean Image */}
-        <div className="relative aspect-square w-full bg-black overflow-hidden flex items-center justify-center p-8">
-          <div className="absolute top-4 left-4 z-10 flex items-center gap-2">
-            <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-white/10 text-white font-medium border border-white/10">
-              .ydd / .ytd
-            </span>
-            <span className="text-[10px] text-zinc-500 font-mono">
-              REF. {product.reference}
-            </span>
-          </div>
-
-          <Image
-            src={product.image}
-            alt={product.name}
-            fill
-            className="object-contain p-6"
-          />
-        </div>
-
-        {/* Right: Technical Atelier 3D Specs */}
-        <div className="p-8 sm:p-10 flex flex-col justify-between">
-          <div>
-            <span className="text-xs text-zinc-400 font-medium block mb-1">
-              {product.brand} · Master collection
-            </span>
-            <h2 className="text-2xl text-white font-semibold tracking-tight leading-tight mb-2">
-              {product.name}
-            </h2>
-            <div className="text-lg font-semibold text-zinc-100 mb-4">
-              {product.priceDisplay}
-            </div>
-
-            <p className="text-xs text-zinc-400 font-normal leading-relaxed mb-6">
-              {product.fullDescription}
-            </p>
-
-            {/* FiveM 3D Architecture Specifications */}
-            <div className="space-y-2.5 pt-4 border-t border-white/5 text-xs">
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <span className="text-zinc-400">Precious metal</span>
-                <span className="text-zinc-200 font-medium">{product.specs.material}</span>
-              </div>
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <span className="text-zinc-400">Stone setting</span>
-                <span className="text-zinc-200 font-medium">{product.specs.stones}</span>
-              </div>
-              <div className="flex justify-between border-b border-white/5 pb-2">
-                <span className="text-zinc-400">Ped compatibility</span>
-                <span className="text-zinc-200 font-medium">{product.specs.compatibility}</span>
-              </div>
-              <div className="flex justify-between pt-0.5">
-                <span className="text-zinc-400">File format</span>
-                <span className="text-emerald-400 font-medium">.ydd / .ytd stream ready</span>
-              </div>
-            </div>
-          </div>
-
-          <div className="pt-8 space-y-3">
-            <button
-              onClick={handleAcquire}
-              className="w-full h-11 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs rounded-full flex items-center justify-center gap-2 transition-all cursor-pointer shadow-lg"
-            >
-              <IconShoppingBag size={15} />
-              <span>Acquire creation · {product.priceDisplay}</span>
-            </button>
-
-            <button
-              onClick={() => onSelectForInquiry(product.name)}
-              className="w-full h-11 bg-zinc-900 hover:bg-zinc-800 border border-white/10 text-white font-medium text-xs rounded-full flex items-center justify-center gap-2 transition-colors cursor-pointer"
-            >
-              <span>Request 1-of-1 bespoke variation</span>
-              <IconArrowRight size={14} />
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function CollectionsFilterGrid() {
   const searchParams = useSearchParams();
@@ -143,7 +30,8 @@ function CollectionsFilterGrid() {
   const [activeCategory, setActiveCategory] = useState<ProductCategory>(initialCategoryParam);
   const [activeCollection, setActiveCollection] = useState<ProductCollection | null>(initialCollectionParam);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [productsList, setProductsList] = useState<Product[]>(YUFO_PRODUCTS);
+  // Liste vide au départ : on n'affiche que le catalogue réel (pas les anciens articles intégrés au code).
+  const [productsList, setProductsList] = useState<Product[]>([]);
   // Catégories et collections telles que réglées dans le back-office (ordre, noms, visibilité).
   const [cats, setCats] = useState<{ id: string; label: string }[]>(CATEGORIES_NAV.filter((c) => c.id !== 'all'));
   const [cols, setCols] = useState<{ id: string; label: string; desc?: string }[]>(COLLECTIONS_NAV.filter((c) => c.id !== 'all'));
@@ -340,10 +228,10 @@ function CollectionsFilterGrid() {
 
       {/* Product Inspection Modal */}
       {selectedProduct && (
-        <ProductInspectionModal
+        <ProductDetailModal
           product={selectedProduct}
           onClose={() => setSelectedProduct(null)}
-          onSelectForInquiry={handleInquiryFromProduct}
+          onOpenBespoke={() => handleInquiryFromProduct(selectedProduct.name)}
         />
       )}
     </>

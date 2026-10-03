@@ -89,15 +89,16 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const memberData = await memberRes.json();
-    const effectiveName = memberData.nick || discordUser.global_name || discordUser.username;
+    // Nom affiché = nom d'affichage Discord (global_name), @ = vrai nom d'utilisateur Discord.
+    const displayName = discordUser.global_name || discordUser.username;
 
     // 3. Upsert user in local database
     const userProfile = upsertDiscordUser(
       discordUser.id,
-      effectiveName,
+      displayName,
       discordUser.avatar,
-      discordUser.email
+      discordUser.email,
+      discordUser.username
     );
 
     // 4. Set session cookie

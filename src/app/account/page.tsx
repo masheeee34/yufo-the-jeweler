@@ -10,6 +10,7 @@ import { AlexMossHeader } from '../../components/AlexMossHeader';
 import { AlexMossChat } from '../../components/AlexMossChat';
 import { UserAvatar } from '../../components/UserMenu';
 import { LoaderOne } from '../../components/LoaderOne';
+import { OrderTracker, trackerLabel } from '../../components/OrderTracker';
 import {
   User,
   Mail,
@@ -386,13 +387,19 @@ function AccountPageContent() {
                               {inq.id}
                             </span>
                             <span className="px-3 py-1 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400">
-                              {isPending ? '72h Concierge active' : inq.status}
+                              {inq.project || inq.order || inq.id.startsWith('YUF-ORD') ? trackerLabel(inq) : isPending ? 'Waiting for our reply' : inq.status}
                             </span>
                           </div>
 
                           <p className="text-sm font-semibold text-white">
                             {inq.subject}
                           </p>
+
+                          {(inq.project || inq.order || inq.id.startsWith('YUF-ORD')) && (
+                            <div className="pt-2">
+                              <OrderTracker inquiry={inq} />
+                            </div>
+                          )}
 
                           <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs text-zinc-400">
                             <span>

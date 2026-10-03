@@ -409,3 +409,35 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .adm-page, .adm-pop, .adm-fade, .adm-drawer, .adm-toast, .adm-active-bar, .adm-stagger > * { animation: none; }
 }
+
+/* ===== Site public : animations ===== */
+@keyframes home-rise-in { from { opacity: 0; transform: translateY(14px); filter: blur(6px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes home-bg-zoom { from { transform: scale(1.08); } to { transform: scale(1); } }
+@keyframes avatar-pop-in { from { opacity: 0; transform: translateY(6px) scale(0.85); } to { opacity: 1; transform: none; } }
+@keyframes bell-swing { 0%, 100% { transform: rotate(0); } 10% { transform: rotate(14deg); } 20% { transform: rotate(-12deg); } 30% { transform: rotate(8deg); } 40% { transform: rotate(-5deg); } 50% { transform: rotate(0); } }
+@keyframes modal-in { from { opacity: 0; transform: translateY(10px) scale(0.98); } to { opacity: 1; transform: none; } }
+.home-rise { animation: home-rise-in 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.home-choice { animation: home-rise-in 0.9s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.home-bg { animation: home-bg-zoom 2.4s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.avatar-pop { animation: avatar-pop-in 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both; }
+.bell-ring { transform-origin: 50% 4px; animation: bell-swing 2.4s ease-in-out infinite; }
+.product-modal { animation: modal-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* Compteur à chiffres qui roulent */
+.ticker-strip { transition: transform 0.55s cubic-bezier(0.34, 1.3, 0.64, 1), filter 0.3s ease; }
+
+/* Suivi de commande : repère qui « rebondit » vers l'étape en cours */
+.tracker-marker { transition: top 0.7s cubic-bezier(0.34, 1.56, 0.64, 1); }
+.tracker-fill { transition: height 0.7s cubic-bezier(0.2, 0.8, 0.2, 1); }
+
+/* Flou progressif en bas de l'image produit */
+.progressive-blur span { position: absolute; inset: 0; }
+.progressive-blur span:nth-child(1) { backdrop-filter: blur(1px); -webkit-backdrop-filter: blur(1px); mask-image: linear-gradient(to bottom, transparent 0%, black 25%); -webkit-mask-image: linear-gradient(to bottom, transparent 0%, black 25%); }
+.progressive-blur span:nth-child(2) { backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px); mask-image: linear-gradient(to bottom, transparent 25%, black 50%); -webkit-mask-image: linear-gradient(to bottom, transparent 25%, black 50%); }
+.progressive-blur span:nth-child(3) { backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px); mask-image: linear-gradient(to bottom, transparent 50%, black 75%); -webkit-mask-image: linear-gradient(to bottom, transparent 50%, black 75%); }
+.progressive-blur span:nth-child(4) { backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); mask-image: linear-gradient(to bottom, transparent 75%, black 100%); -webkit-mask-image: linear-gradient(to bottom, transparent 75%, black 100%); background: linear-gradient(to bottom, transparent, rgba(0, 0, 0, 0.35)); }
+
+@media (prefers-reduced-motion: reduce) {
+  .home-rise, .home-choice, .home-bg, .avatar-pop, .bell-ring, .product-modal { animation: none; }
+  .ticker-strip, .tracker-marker, .tracker-fill { transition: none; }
+}

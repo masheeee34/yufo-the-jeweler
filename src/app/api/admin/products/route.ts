@@ -30,6 +30,18 @@ function pickEditable(body: any): Partial<Product> {
     const list = Array.isArray(body.tags) ? body.tags : String(body.tags).split(',');
     out.tags = [...new Set<string>(list.map((t: unknown) => String(t).trim().toLowerCase()).filter(Boolean))].slice(0, 15);
   }
+  if (Array.isArray(body.gallery)) {
+    out.gallery = body.gallery
+      .map((g: unknown) => str(g, 500))
+      .filter((g: string) => /^\/(api\/uploads|assets)\/[\w./-]+$/.test(g) || /^https:\/\/\S+$/i.test(g))
+      .slice(0, 12);
+  }
+  if (Array.isArray(body.details)) {
+    out.details = body.details
+      .map((d: any) => ({ title: str(d?.title, 80), content: str(d?.content, 3000) }))
+      .filter((d: { title: string; content: string }) => d.title && d.content)
+      .slice(0, 12);
+  }
   if (Array.isArray(body.fileIds)) {
     const known = new Set(getFiles().filter((f) => !f.deletedAt).map((f) => f.id));
     out.fileIds = [...new Set<string>(body.fileIds.map(String))].filter((id) => known.has(id));

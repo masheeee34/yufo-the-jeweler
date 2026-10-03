@@ -12,6 +12,8 @@ import {
   IconX,
 } from '@tabler/icons-react';
 import { LoaderOne } from './LoaderOne';
+import { NumberTicker } from './NumberTicker';
+import { SegmentedControl } from './SegmentedControl';
 
 export const DISCORD_INVITE = 'https://discord.gg/yufothejeweler';
 
@@ -24,7 +26,7 @@ const CATEGORIES = [
   { value: 'Full bust & multi-chain showcase (1-of-1 exclusive)', label: 'Full set', hint: 'Multi-piece 1-of-1' },
 ];
 
-const PED_TARGETS = ['Universal (male & female)', 'Male freemode', 'Female freemode', 'Custom ped'];
+const PED_TARGETS = ['Universal (male & female)', 'Male freemode', 'Female freemode', 'Custom ped']; // réponses par défaut, réglables dans Management
 
 // Tranches affichées sur les curseurs : à ajuster selon les tarifs de l'atelier.
 // Valeurs par défaut ; les vraies tranches se règlent dans le back-office (Settings › Custom orders).
@@ -32,6 +34,9 @@ const DEFAULT_DURATIONS = ['1 week', '2 weeks', '4 weeks', '6 weeks', '8+ weeks'
 const DEFAULT_BUDGETS = ['$50', '$100', '$250', '$500', '$1K+'];
 
 interface WizardConfig {
+  budgetMin: number;
+  budgetStep: number;
+  pedOptions: string[];
   mode: 'open' | 'limited' | 'closed';
   budgets: string[];
   durations: string[];
@@ -123,6 +128,49 @@ function StepSlider({
   );
 }
 
+// Budget : compteur animé, du minimum réglé dans Management, par paliers (+5 $ par défaut), sans plafond.
+function BudgetPicker({ value, min, step, onChange }: { value: number; min: number; step: number; onChange: (v: number) => void }) {
+  const hold = useRef<number | null>(null);
+  const cur = useRef(value);
+  cur.current = value;
+  const round = (n: number) => Math.round(n * 100) / 100;
+  const bump = (dir: 1 | -1) => {
+    cur.current = round(Math.max(min, cur.current + dir * step));
+    onChange(cur.current);
+  };
+  const stop = () => {
+    if (hold.current !== null) window.clearTimeout(hold.current);
+    hold.current = null;
+  };
+  // Appui maintenu : le compteur avance de plus en plus vite.
+  const start = (dir: 1 | -1) => {
+    stop();
+    bump(dir);
+    let delay = 260;
+    const tick = () => {
+      bump(dir);
+      delay = Math.max(60, delay * 0.85);
+      hold.current = window.setTimeout(tick, delay);
+    };
+    hold.current = window.setTimeout(tick, 420);
+  };
+  useEffect(() => stop, []);
+  const btn = 'w-12 h-12 rounded-full border border-white/15 hover:border-white/40 hover:bg-white/[0.06] text-white text-xl flex items-center justify-center transition-colors select-none disabled:opacity-30';
+  return (
+    <div className="space-y-3">
+      <p className="text-xs font-medium text-zinc-400">Budget:</p>
+      <div className="flex items-center justify-between gap-4 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-4">
+        <button type="button" aria-label="Lower budget" className={btn} disabled={value <= min}
+          onPointerDown={() => start(-1)} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop}>−</button>
+        <NumberTicker value={value} prefix="$" className="text-4xl sm:text-5xl font-semibold text-white" />
+        <button type="button" aria-label="Raise budget" className={btn}
+          onPointerDown={() => start(1)} onPointerUp={stop} onPointerLeave={stop} onPointerCancel={stop}>+</button>
+      </div>
+      <p className="text-[11px] text-zinc-500 text-center">From ${min.toFixed(2)} · +${step % 1 ? step.toFixed(2) : step} per step · hold to go faster</p>
+    </div>
+  );
+}
+
 export function CustomProjectWizard({
   referencedPiece,
   onClearReference,
@@ -138,8 +186,8 @@ export function CustomProjectWizard({
   const [pedTarget, setPedTarget] = useState(PED_TARGETS[0]);
   const [vision, setVision] = useState('');
   const [durationIndex, setDurationIndex] = useState(2);
-  const [budgetIndex, setBudgetIndex] = useState(2);
-  const [cfg, setCfg] = useState<WizardConfig>({ mode: 'open', budgets: DEFAULT_BUDGETS, durations: DEFAULT_DURATIONS, note: '', intro: '' });
+  const [budget, setBudget] = useState(24.99);
+  const [cfg, setCfg] = useState<WizardConfig>({ mode: 'open', budgets: DEFAULT_BUDGETS, durations: DEFAULT_DURATIONS, note: '', intro: '', budgetMin: 24.99, budgetStep: 5, pedOptions: PED_TARGETS });
 
   useEffect(() => {
     fetch('/api/settings')
@@ -149,15 +197,17 @@ export function CustomProjectWizard({
         if (!c) return;
         const budgets = Array.isArray(c.budgets) && c.budgets.length > 1 ? c.budgets : DEFAULT_BUDGETS;
         const durations = Array.isArray(c.durations) && c.durations.length > 1 ? c.durations : DEFAULT_DURATIONS;
-        setCfg({ mode: c.mode || 'open', budgets, durations, note: c.note || '', startingPrice: c.startingPrice, intro: d.general?.customPageIntro || '' });
-        setBudgetIndex((i) => Math.min(i, budgets.length - 1));
+        const budgetMin = Number(c.budgetMin) >= 0 ? Number(c.budgetMin) : 24.99;
+        const pedOptions = Array.isArray(c.pedOptions) && c.pedOptions.length ? c.pedOptions : PED_TARGETS;
+        setCfg({ mode: c.mode || 'open', budgets, durations, note: c.note || '', startingPrice: c.startingPrice, intro: d.general?.customPageIntro || '', budgetMin, budgetStep: Number(c.budgetStep) || 5, pedOptions });
+        setBudget(budgetMin);
+        setPedTarget((p) => (pedOptions.includes(p) ? p : pedOptions[0]));
         setDurationIndex((i) => Math.min(i, durations.length - 1));
       })
       .catch(() => {});
   }, []);
 
   const DURATIONS = cfg.durations;
-  const BUDGETS = cfg.budgets;
   const DURATION_TICKS = DURATIONS.map((d) => d.split(' ')[0]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
@@ -222,7 +272,7 @@ export function CustomProjectWizard({
           vision: vision.trim(),
           referencedPiece,
           duration: DURATIONS[durationIndex],
-          budget: BUDGETS[budgetIndex],
+          budget: `$${budget.toFixed(2)}`,
           attachments: images.filter((img) => img.status === 'done').map((img) => img.name),
         }),
       });
@@ -377,20 +427,7 @@ export function CustomProjectWizard({
             </div>
             <div>
               <p className="text-xs font-medium text-zinc-400 mb-2.5">Who will wear it?</p>
-              <div className="flex flex-wrap gap-2">
-                {PED_TARGETS.map((p) => (
-                  <button
-                    key={p}
-                    type="button"
-                    onClick={() => setPedTarget(p)}
-                    className={`h-9 px-4 rounded-full text-xs font-medium border transition-colors ${
-                      pedTarget === p ? 'bg-white text-zinc-950 border-white' : 'border-white/15 text-zinc-300 hover:border-white/40'
-                    }`}
-                  >
-                    {p}
-                  </button>
-                ))}
-              </div>
+              <SegmentedControl options={cfg.pedOptions} value={pedTarget} onChange={setPedTarget} label="Who will wear it?" />
             </div>
           </div>
         )}
@@ -504,14 +541,7 @@ export function CustomProjectWizard({
               index={durationIndex}
               onChange={setDurationIndex}
             />
-            <StepSlider
-              id="wiz-budget"
-              label="Budget:"
-              valueLabel={BUDGETS[budgetIndex]}
-              ticks={BUDGETS}
-              index={budgetIndex}
-              onChange={setBudgetIndex}
-            />
+            <BudgetPicker value={budget} min={cfg.budgetMin} step={cfg.budgetStep} onChange={setBudget} />
           </div>
         )}
 
@@ -523,7 +553,7 @@ export function CustomProjectWizard({
                 ['Piece', CATEGORIES.find((c) => c.value === category)?.label || '-'],
                 ['Worn by', pedTarget],
                 ['Delivery', DURATIONS[durationIndex]],
-                ['Budget', BUDGETS[budgetIndex]],
+                ['Budget', `$${budget.toFixed(2)}`],
                 ['Images', String(images.filter((img) => img.status === 'done').length || 'None')],
                 ['Discord', user?.pseudo || '-'],
               ].map(([k, v]) => (

@@ -32,7 +32,7 @@ export default function JoinPage() {
         <span className="mx-auto w-12 h-12 rounded-xl bg-black border border-white/15 flex items-center justify-center">
           <Image src="/assets/brand/yufo_clean_white.png" alt="YUFO" width={30} height={32} className="object-contain" />
         </span>
-        <h1 className="mt-5 text-[20px] font-semibold">Rejoindre YUFO Atelier</h1>
+        <h1 className="mt-5 text-[20px] font-semibold">Rejoindre YUFO Management</h1>
         {(state === 'idle' || state === 'busy') && <div className="mt-8 flex justify-center"><LoaderOne /></div>}
         {state === 'signin' && (
           <>

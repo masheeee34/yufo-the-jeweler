@@ -4,11 +4,17 @@ import { useCallback, useEffect, useState } from 'react';
 import { useAdmin } from './AdminContext';
 
 export interface Settings {
+  site: { title: string; description: string; favicon: string };
+  home: { eyebrow: string; title: string; subtitle: string; customTitle: string; customText: string; premadeTitle: string; premadeText: string };
+  socialProof: { enabled: boolean; count: string; label: string; avatars: string[]; show: number };
   general: {
     brandName: string; tagline: string; contactEmail: string; discordInvite: string; announcement: string; announcementLink: string;
     socials: { instagram: string; tiktok: string; youtube: string; x: string }; customPageIntro: string;
   };
-  customOrders: { mode: 'open' | 'limited' | 'closed'; startingPrice: number; budgets: string[]; durations: string[]; defaultLeadTime: string; note: string };
+  customOrders: {
+    mode: 'open' | 'limited' | 'closed'; startingPrice: number; budgets: string[]; durations: string[]; defaultLeadTime: string; note: string;
+    budgetMin: number; budgetStep: number; pedOptions: string[];
+  };
   payments: { currency: 'USD' | 'EUR' | 'GBP'; methods: string[]; stripePublishableKey: string; stripeEnabled: boolean };
   security: { sessionDays: number };
 }

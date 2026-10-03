@@ -3,6 +3,8 @@ import { audit, requireAdmin } from '@/lib/team';
 import { ChatMessage, getRequests, saveRequests, PaymentStatus, ProjectData, ProjectStage } from '@/lib/requestsDb';
 import { projectInfo, requestKind } from '@/lib/commerce';
 import { MAX_ATTACHMENTS, uploadExists } from '@/lib/uploads';
+import { ownerOf } from '@/lib/filesDb';
+import { notifyCustomer } from '@/lib/customersDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -75,6 +77,11 @@ export async function PATCH(req: NextRequest) {
 
   r.project = next;
   saveRequests(requests);
+  if (next.stage !== before.stage) {
+    const owner = ownerOf(r);
+    const labels: Record<string, string> = { quoted: 'Your quote is ready', in_progress: 'Your piece is in the workshop', preview: 'A 3D preview is ready', approved: 'Preview approved', delivered: 'Your piece is delivered', cancelled: 'Project cancelled' };
+    if (owner && labels[next.stage]) notifyCustomer(owner.id, { type: 'project', title: labels[next.stage], text: `Custom project ${r.id}`, href: '/account?tab=commissions' });
+  }
   const pick = (p: ProjectData) => ({ stage: p.stage, price: p.price, paymentStatus: p.paymentStatus, amountPaid: p.amountPaid, priority: p.priority, strictOptimization: p.strictOptimization });
   audit(ctx, 'project.update', { target: r.id, before: pick(before), after: pick(next) });
   return NextResponse.json({ success: true, project: next });
@@ -120,6 +127,9 @@ export async function POST(req: NextRequest) {
 
   project.updatedAt = now;
   r.project = project;
+  const owner = ownerOf(r);
+  if (owner && body.action === 'preview') notifyCustomer(owner.id, { type: 'project', title: 'A 3D preview is ready', text: `Check it and approve it, or ask for changes (${r.id}).`, href: '/account?tab=commissions' });
+  if (owner && body.action === 'final') notifyCustomer(owner.id, { type: 'files', title: 'Your files are ready', text: `Custom project ${r.id} is delivered.`, href: '/account?tab=commissions' });
   if (message) {
     r.messages.push(message);
     r.status = 'answered';

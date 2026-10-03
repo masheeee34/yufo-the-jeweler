@@ -17,10 +17,10 @@ function Gate({ state, pseudo }: { state: 'signin' | 'forbidden'; pseudo?: strin
         <span className="mx-auto w-12 h-12 rounded-xl bg-black border border-white/15 flex items-center justify-center">
           <Image src="/assets/brand/yufo_clean_white.png" alt="YUFO" width={30} height={32} className="object-contain" />
         </span>
-        <h1 className="mt-5 text-[20px] font-semibold">YUFO Atelier</h1>
+        <h1 className="mt-5 text-[20px] font-semibold">YUFO Management</h1>
         {state === 'signin' ? (
           <>
-            <p className="mt-2 text-[13px] text-zinc-400">Back-office réservé à l’équipe. Connectez-vous avec votre compte Discord.</p>
+            <p className="mt-2 text-[13px] text-zinc-400">Espace Management réservé à l’équipe. Connectez-vous avec votre compte Discord.</p>
             <button
               onClick={() => startDiscordLogin(pathname + window.location.search)}
               className="adm-press mt-7 w-full h-12 rounded-xl bg-[#5865F2] hover:bg-[#4752c4] text-white text-[14px] font-semibold flex items-center justify-center gap-2 transition-colors"
@@ -155,7 +155,7 @@ function Shell({ children }: { children: React.ReactNode }) {
             <IconMenu2 size={20} />
             {me.counts.messages + me.counts.projects > 0 && <span className="absolute top-2 right-2 w-2 h-2 rounded-full bg-amber-400" />}
           </button>
-          <span className="text-[15px] font-semibold flex-1">YUFO Atelier</span>
+          <span className="text-[15px] font-semibold flex-1">YUFO Management</span>
           <button onClick={() => setSearch(true)} className="w-10 h-10 rounded-[10px] hover:bg-white/10 flex items-center justify-center text-zinc-300" aria-label="Rechercher">
             <IconSearch size={19} />
           </button>

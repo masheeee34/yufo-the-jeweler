@@ -35,6 +35,8 @@ export type PaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refunded';
 export interface OrderData {
   items: { name: string; reference?: string; price: number; quantity: number; productId?: string }[];
   total: number;
+  subtotal?: number; // avant réduction personnelle
+  discountPercent?: number;
   email?: string;
   paymentMethod?: string;
   status: OrderStatus;

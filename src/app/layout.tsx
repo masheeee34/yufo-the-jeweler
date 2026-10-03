@@ -1,37 +1,43 @@
 import type { Metadata, Viewport } from 'next';
-import { Cinzel, Plus_Jakarta_Sans, Playfair_Display } from 'next/font/google';
+import localFont from 'next/font/local';
 import './globals.css';
 import { SmoothScroll } from '../components/SmoothScroll';
+import { getSettings } from '../lib/settings';
 
-const cinzel = Cinzel({
-  subsets: ['latin'],
-  weight: ['400', '600', '700', '800'],
+// Polices hébergées dans le projet (versions variables « latin », licence OFL) :
+// la compilation ne dépend plus de Google Fonts.
+const cinzel = localFont({
+  src: './fonts/cinzel.woff2',
+  weight: '400 900',
   variable: '--font-cinzel',
   display: 'swap',
 });
 
-const playfair = Playfair_Display({
-  subsets: ['latin'],
-  weight: ['400', '500', '600', '700'],
+const playfair = localFont({
+  src: './fonts/playfair.woff2',
+  weight: '400 900',
   variable: '--font-playfair',
   display: 'swap',
 });
 
-const plusJakarta = Plus_Jakarta_Sans({
-  subsets: ['latin'],
-  weight: ['300', '400', '500', '600', '700'],
+const plusJakarta = localFont({
+  src: './fonts/jakarta.woff2',
+  weight: '200 800',
   variable: '--font-sans',
   display: 'swap',
 });
 
-export const metadata: Metadata = {
-  title: 'YUFO | Haute Joaillerie & Bespoke 3D FiveM Atelier',
-  description:
-    'Bespoke diamond chains, custom pendants, and iced-out timepieces rigged for FiveM ped skeletons. Handcrafted 3D luxury atelier.',
-  icons: {
-    icon: '/assets/brand/yufo_clean_white.png',
-  },
-};
+// Titre, description et icône d'onglet réglables depuis Management › General (relus toutes les 60 s).
+export const revalidate = 60;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const { site } = getSettings();
+  return {
+    title: site.title,
+    description: site.description,
+    icons: { icon: site.favicon },
+  };
+}
 
 export const viewport: Viewport = {
   themeColor: '#151515',

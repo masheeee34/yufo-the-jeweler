@@ -3,6 +3,27 @@ import { readJson, writeJson } from './jsonStore';
 // Réglages du site modifiables depuis Settings. Les secrets (clé Stripe secrète…) n'y sont jamais stockés :
 // ils restent dans les variables d'environnement du serveur.
 export interface SiteSettings {
+  site: {
+    title: string;
+    description: string;
+    favicon: string;
+  };
+  home: {
+    eyebrow: string;
+    title: string;
+    subtitle: string;
+    customTitle: string;
+    customText: string;
+    premadeTitle: string;
+    premadeText: string;
+  };
+  socialProof: {
+    enabled: boolean;
+    count: string;
+    label: string;
+    avatars: string[];
+    show: number;
+  };
   general: {
     brandName: string;
     tagline: string;
@@ -20,6 +41,9 @@ export interface SiteSettings {
     durations: string[];
     defaultLeadTime: string;
     note: string;
+    budgetMin: number;
+    budgetStep: number;
+    pedOptions: string[];
   };
   payments: {
     currency: 'USD' | 'EUR' | 'GBP';
@@ -33,6 +57,27 @@ export interface SiteSettings {
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
+  site: {
+    title: 'YUFO | Haute Joaillerie & Bespoke 3D FiveM Atelier',
+    description: 'Bespoke diamond chains, custom pendants, and iced-out timepieces rigged for FiveM ped skeletons. Handcrafted 3D luxury atelier.',
+    favicon: '/assets/brand/yufo_clean_white.png',
+  },
+  home: {
+    eyebrow: 'Los Santos & SoHo 3D Atelier',
+    title: 'High-quality jewelry sculpted for FiveM',
+    subtitle: 'Custom medallions, iced timepieces and heavy chains rigged to GTA V ped skeletons, with clean weight painting and stream-ready files.',
+    customTitle: 'Create your custom piece',
+    customText: 'Tell us your idea: we sculpt a 1-of-1 piece, made for you.',
+    premadeTitle: 'Shop ready-made pieces',
+    premadeText: 'Browse finished creations, ready to stream on your server today.',
+  },
+  socialProof: {
+    enabled: true,
+    count: '99',
+    label: 'collectors trust YUFO',
+    avatars: [],
+    show: 5,
+  },
   general: {
     brandName: 'YUFO The Jeweler',
     tagline: 'Digital haute joaillerie for FiveM',
@@ -50,6 +95,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     durations: ['1 week', '2 weeks', '4 weeks', '6 weeks', '8+ weeks'],
     defaultLeadTime: '2 to 4 weeks',
     note: '',
+    budgetMin: 24.99,
+    budgetStep: 5,
+    pedOptions: ['Universal (male & female)', 'Male freemode', 'Female freemode', 'Custom ped'],
   },
   payments: {
     currency: 'USD',
@@ -65,6 +113,9 @@ export const DEFAULT_SETTINGS: SiteSettings = {
 export function getSettings(): SiteSettings {
   const saved = readJson<Partial<SiteSettings>>('settings.json', {});
   return {
+    site: { ...DEFAULT_SETTINGS.site, ...saved.site },
+    home: { ...DEFAULT_SETTINGS.home, ...saved.home },
+    socialProof: { ...DEFAULT_SETTINGS.socialProof, ...saved.socialProof },
     general: {
       ...DEFAULT_SETTINGS.general,
       ...saved.general,
@@ -84,6 +135,9 @@ export function saveSettings(s: SiteSettings) {
 export function publicSettings() {
   const s = getSettings();
   return {
+    site: s.site,
+    home: s.home,
+    socialProof: s.socialProof,
     general: s.general,
     customOrders: s.customOrders,
     payments: { currency: s.payments.currency, methods: s.payments.methods, stripeEnabled: s.payments.stripeEnabled },

@@ -11,6 +11,8 @@ export interface UserInquiry {
   expiresAt: string;
   status: 'pending' | 'answered' | 'closed';
   discordChannelId?: string;
+  project?: { stage?: string };
+  order?: { status?: string; paymentStatus?: string };
   messages: Array<{
     id: string;
     sender: 'client' | 'admin';

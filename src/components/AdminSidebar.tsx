@@ -29,6 +29,7 @@ import {
   IconUserCircle,
   IconUsers,
   IconUsersGroup,
+  IconWorld,
   IconX,
 } from '@tabler/icons-react';
 import { Permission, useAdmin } from './admin/AdminContext';
@@ -125,6 +126,7 @@ export const AdminSidebar: React.FC<{ mobileOpen: boolean; onCloseMobile: () => 
       icon: IconSettings,
       items: [
         { label: 'General', icon: IconSettings, href: '/admin/settings/general', perm: 'settings' },
+        { label: 'Website', icon: IconWorld, href: '/admin/settings/website', perm: 'settings' },
         { label: 'Custom orders', icon: IconSparkles, href: '/admin/settings/custom-orders', perm: 'settings' },
         { label: 'Payments', icon: IconCreditCard, href: '/admin/settings/payments', perm: 'payments' },
         { label: 'Security', icon: IconShieldLock, href: '/admin/settings/security', perm: 'security' },
@@ -174,7 +176,7 @@ export const AdminSidebar: React.FC<{ mobileOpen: boolean; onCloseMobile: () => 
         <span className="w-9 h-9 rounded-[9px] bg-black border border-white/15 flex items-center justify-center shrink-0">
           <Image src="/assets/brand/yufo_clean_white.png" alt="YUFO" width={24} height={25} className="object-contain" />
         </span>
-        {!compact && <span className="text-[17px] font-semibold text-white truncate">YUFO Atelier</span>}
+        {!compact && <span className="text-[17px] font-semibold text-white truncate">YUFO Management</span>}
         {mobile && (
           <button onClick={onCloseMobile} className="ml-auto w-9 h-9 rounded-full hover:bg-white/10 flex items-center justify-center text-zinc-400" aria-label="Fermer le menu">
             <IconX size={18} />

@@ -59,16 +59,18 @@ function hashPassword(password: string, salt: string): string {
 
 export function upsertDiscordUser(
   discordId: string,
-  username: string,
+  displayName: string,
   avatar?: string,
-  email?: string
+  email?: string,
+  handle?: string
 ): UserProfile {
   const users = getUsers();
   const index = users.findIndex((u) => u.discordId === discordId);
+  const username = displayName;
 
   if (index !== -1) {
-    users[index].pseudo = username;
-    users[index].discordTag = username;
+    users[index].pseudo = displayName;
+    users[index].discordTag = handle || displayName;
     if (avatar) users[index].avatar = avatar;
     if (email) users[index].email = email;
     users[index].isDiscordVerified = true;
@@ -80,10 +82,10 @@ export function upsertDiscordUser(
   // Create new profile linked to Discord
   const newUser: StoredUser = {
     id: `usr_d_${discordId}`,
-    pseudo: username,
-    email: email || `${username.toLowerCase().replace(/[^a-z0-9]/g, '')}@discord.user`,
+    pseudo: displayName,
+    email: email || `${(handle || username).toLowerCase().replace(/[^a-z0-9]/g, '')}@discord.user`,
     discordId,
-    discordTag: username,
+    discordTag: handle || displayName,
     avatar: avatar || undefined,
     createdAt: new Date().toISOString(),
     vipTier: 'Atelier Member',

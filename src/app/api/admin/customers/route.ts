@@ -61,6 +61,13 @@ export async function PATCH(req: NextRequest) {
   if (body.note) {
     rec.notes = [...rec.notes, { id: crypto.randomBytes(5).toString('hex'), by: ctx.user.pseudo, at: new Date().toISOString(), text: String(body.note).trim().slice(0, 2000) }];
   }
+  // Nouvelle réduction (ou réduction plus forte) : le client est prévenu et la découvre en grattant une carte.
+  if (rec.discountPercent && rec.discountPercent > (before.discountPercent || 0)) {
+    rec.notifications = [
+      { id: crypto.randomBytes(6).toString('hex'), type: 'discount' as const, title: 'You received a gift from YUFO', text: 'Scratch the card to reveal your personal discount.', percent: rec.discountPercent, at: new Date().toISOString() },
+      ...(rec.notifications || []),
+    ].slice(0, 30);
+  }
   saveCustomerRecord(user.id, rec);
   const after = { tags: rec.tags, discountPercent: rec.discountPercent };
   if (JSON.stringify(before) !== JSON.stringify(after)) audit(ctx, 'customer.update', { target: user.pseudo, before, after });

@@ -9,6 +9,11 @@ const url = (v: unknown) => {
   const s = str(v, 300);
   return !s || /^https?:\/\/\S+$/i.test(s) ? s : null;
 };
+// Image hébergée sur le site (envoyée par le formulaire) ou adresse https.
+const image = (v: unknown) => {
+  const s = str(v, 300);
+  return !s || /^\/(api\/uploads|assets)\/[\w./-]+$/.test(s) || /^https:\/\/\S+$/i.test(s) ? s : null;
+};
 
 export async function GET(req: NextRequest) {
   const ctx = requireAdmin(req, 'settings');
@@ -33,7 +38,35 @@ export async function PUT(req: NextRequest) {
   const v = values || {};
   const before = JSON.parse(JSON.stringify(s[section as keyof SiteSettings] || {}));
 
-  if (section === 'general') {
+  if (section === 'site') {
+    const favicon = image(v.favicon);
+    if (favicon === null) return NextResponse.json({ error: 'Icône invalide.' }, { status: 400 });
+    s.site = {
+      title: str(v.title, 120) || s.site.title,
+      description: str(v.description, 300),
+      favicon: favicon || s.site.favicon,
+    };
+  } else if (section === 'home') {
+    s.home = {
+      eyebrow: str(v.eyebrow, 80),
+      title: str(v.title, 120) || s.home.title,
+      subtitle: str(v.subtitle, 300),
+      customTitle: str(v.customTitle, 80) || s.home.customTitle,
+      customText: str(v.customText, 200),
+      premadeTitle: str(v.premadeTitle, 80) || s.home.premadeTitle,
+      premadeText: str(v.premadeText, 200),
+    };
+  } else if (section === 'socialProof') {
+    const avatars = (Array.isArray(v.avatars) ? v.avatars : []).map(image);
+    if (avatars.includes(null)) return NextResponse.json({ error: 'Une des photos est invalide.' }, { status: 400 });
+    s.socialProof = {
+      enabled: !!v.enabled,
+      count: str(v.count, 12) || '99',
+      label: str(v.label, 80),
+      avatars: (avatars as string[]).filter(Boolean).slice(0, 12),
+      show: Math.min(12, Math.max(0, Math.round(Number(v.show) || 0))),
+    };
+  } else if (section === 'general') {
     const links = [v.discordInvite, v.announcementLink, v.socials?.instagram, v.socials?.tiktok, v.socials?.youtube, v.socials?.x].map(url);
     if (links.includes(null)) return NextResponse.json({ error: 'Un des liens est invalide (http ou https).' }, { status: 400 });
     s.general = {
@@ -58,7 +91,14 @@ export async function PUT(req: NextRequest) {
       durations,
       defaultLeadTime: str(v.defaultLeadTime, 60),
       note: str(v.note, 300),
+      budgetMin: Math.max(0, Math.round((Number(v.budgetMin) || 0) * 100) / 100),
+      budgetStep: Math.max(1, Math.round((Number(v.budgetStep) || 5) * 100) / 100),
+      pedOptions: (Array.isArray(v.pedOptions) ? v.pedOptions : String(v.pedOptions || '').split(','))
+        .map((o: unknown) => str(o, 40))
+        .filter(Boolean)
+        .slice(0, 8),
     };
+    if (s.customOrders.pedOptions.length < 1) return NextResponse.json({ error: 'Au moins une réponse pour le choix du ped.' }, { status: 400 });
   } else if (section === 'payments') {
     s.payments = {
       currency: ['USD', 'EUR', 'GBP'].includes(v.currency) ? v.currency : s.payments.currency,

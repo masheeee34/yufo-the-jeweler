@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { audit, requireAdmin } from '@/lib/team';
 import { getRequests, saveRequests, OrderStatus, PaymentStatus } from '@/lib/requestsDb';
 import { orderInfo, projectInfo, requestKind } from '@/lib/commerce';
-import { getGrants, grantForOrder, saveGrants } from '@/lib/filesDb';
+import { getGrants, grantForOrder, ownerOf, saveGrants } from '@/lib/filesDb';
+import { notifyCustomer } from '@/lib/customersDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -94,6 +95,15 @@ export async function PATCH(req: NextRequest) {
     for (const g of grants) if (g.refId === r.id && !g.revokedAt) { g.revokedAt = next.updatedAt; g.revokedBy = ctx.user.pseudo; n++; }
     if (n) saveGrants(grants);
     filesNote = `${n} accès fichier(s) révoqué(s)`;
+  }
+
+  // Le client est prévenu dans sa cloche.
+  const owner = ownerOf(r);
+  if (owner) {
+    if (next.paymentStatus === 'paid' && before.paymentStatus !== 'paid') notifyCustomer(owner.id, { type: 'files', title: 'Payment confirmed', text: `Order ${r.id}: your files are ready in « My files ».`, href: '/account?tab=files' });
+    else if (next.status !== before.status && next.status === 'delivered') notifyCustomer(owner.id, { type: 'order', title: 'Order delivered', text: `Order ${r.id} has been delivered.`, href: '/account?tab=commissions' });
+    else if (next.status !== before.status && next.status === 'processing') notifyCustomer(owner.id, { type: 'order', title: 'Order in progress', text: `We are preparing order ${r.id}.`, href: '/account?tab=commissions' });
+    else if (next.paymentStatus === 'refunded' && before.paymentStatus !== 'refunded') notifyCustomer(owner.id, { type: 'order', title: 'Order refunded', text: `Order ${r.id} has been refunded.`, href: '/account?tab=commissions' });
   }
 
   audit(ctx, 'order.update', {
