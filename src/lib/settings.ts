@@ -1,4 +1,5 @@
 import { readJson, writeJson } from './jsonStore';
+import { DEFAULT_WIZARD, WizardSettings } from './wizardDefaults';
 
 // Réglages du site modifiables depuis Settings. Les secrets (clé Stripe secrète…) n'y sont jamais stockés :
 // ils restent dans les variables d'environnement du serveur.
@@ -45,6 +46,7 @@ export interface SiteSettings {
     budgetStep: number;
     pedOptions: string[];
   };
+  wizard: WizardSettings;
   payments: {
     currency: 'USD' | 'EUR' | 'GBP';
     methods: string[];
@@ -99,6 +101,7 @@ export const DEFAULT_SETTINGS: SiteSettings = {
     budgetStep: 5,
     pedOptions: ['Universal (male & female)', 'Male freemode', 'Female freemode', 'Custom ped'],
   },
+  wizard: DEFAULT_WIZARD,
   payments: {
     currency: 'USD',
     methods: ['Stripe (card)', 'PayPal', 'Crypto'],
@@ -122,6 +125,13 @@ export function getSettings(): SiteSettings {
       socials: { ...DEFAULT_SETTINGS.general.socials, ...saved.general?.socials },
     },
     customOrders: { ...DEFAULT_SETTINGS.customOrders, ...saved.customOrders },
+    wizard: {
+      ...DEFAULT_SETTINGS.wizard,
+      // Les réponses du ped étaient d'abord réglées dans Custom orders : on les reprend.
+      ...(saved.customOrders?.pedOptions?.length ? { pedOptions: saved.customOrders.pedOptions } : {}),
+      ...saved.wizard,
+      texts: { ...DEFAULT_SETTINGS.wizard.texts, ...saved.wizard?.texts },
+    },
     payments: { ...DEFAULT_SETTINGS.payments, ...saved.payments },
     security: { ...DEFAULT_SETTINGS.security, ...saved.security },
   };
@@ -140,6 +150,7 @@ export function publicSettings() {
     socialProof: s.socialProof,
     general: s.general,
     customOrders: s.customOrders,
+    wizard: s.wizard,
     payments: { currency: s.payments.currency, methods: s.payments.methods, stripeEnabled: s.payments.stripeEnabled },
   };
 }

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from 'react';
 import { useAdmin } from './AdminContext';
+import type { WizardSettings } from '@/lib/wizardDefaults';
 
 export interface Settings {
   site: { title: string; description: string; favicon: string };
@@ -15,6 +16,7 @@ export interface Settings {
     mode: 'open' | 'limited' | 'closed'; startingPrice: number; budgets: string[]; durations: string[]; defaultLeadTime: string; note: string;
     budgetMin: number; budgetStep: number; pedOptions: string[];
   };
+  wizard: WizardSettings;
   payments: { currency: 'USD' | 'EUR' | 'GBP'; methods: string[]; stripePublishableKey: string; stripeEnabled: boolean };
   security: { sessionDays: number };
 }

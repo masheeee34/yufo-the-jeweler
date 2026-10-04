@@ -28,3 +28,9 @@ export function sniffImage(buf: Buffer): keyof typeof MIME | null {
 export function uploadExists(name: string): boolean {
   return UPLOAD_NAME.test(name) && fs.existsSync(path.join(UPLOADS_DIR, name));
 }
+
+// Une image est encore utilisée si son nom apparaît dans un des fichiers de data/ (demandes, créations, avis, réglages…).
+export function uploadReferenced(name: string): boolean {
+  const dir = path.join(process.cwd(), 'data');
+  return fs.readdirSync(dir).some((f) => f.endsWith('.json') && fs.readFileSync(path.join(dir, f), 'utf-8').includes(name));
+}

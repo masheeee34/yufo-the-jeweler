@@ -19,23 +19,27 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    if (getSettings().customOrders.mode === 'closed') {
+    const settings = getSettings();
+    const wiz = settings.wizard;
+    if (settings.customOrders.mode === 'closed') {
       return NextResponse.json({ error: 'Custom orders are closed for the moment. Join our Discord to be notified.' }, { status: 403 });
     }
 
     const body = await req.json();
     const category = clean(body.category, 120);
-    const pedTarget = clean(body.pedTarget, 60);
+    // Le ped peut être un choix multiple (« Male, Franklin ») ; seules les réponses proposées sont gardées.
+    const peds = (Array.isArray(body.pedTarget) ? body.pedTarget : [body.pedTarget]).map((x: unknown) => clean(x, 40)).filter((x: string) => wiz.pedOptions.includes(x));
+    const pedTarget = wiz.askPed ? (wiz.pedMultiple ? [...new Set(peds)] : peds.slice(0, 1)).join(', ') : '';
     const vision = clean(body.vision, 4000);
     const referencedPiece = clean(body.referencedPiece, 120);
-    const duration = clean(body.duration, 30);
-    const budget = clean(body.budget, 30);
+    const duration = wiz.askDuration ? clean(body.duration, 30) : '';
+    const budget = wiz.askBudget ? clean(body.budget, 30) : '';
     // Images envoyées au préalable via /api/uploads : on ne garde que des noms valides et existants.
-    const attachments = Array.isArray(body.attachments)
-      ? [...new Set<string>(body.attachments.map((a: unknown) => String(a)))].filter(uploadExists).slice(0, MAX_ATTACHMENTS)
+    const attachments = wiz.askImages && Array.isArray(body.attachments)
+      ? [...new Set<string>(body.attachments.map((a: unknown) => String(a)))].filter(uploadExists).slice(0, Math.min(MAX_ATTACHMENTS, wiz.maxImages))
       : [];
 
-    if (!category || vision.length < 15) {
+    if (!category || vision.length < wiz.minBriefLength) {
       return NextResponse.json(
         { error: 'Please choose a type of piece and describe your vision.' },
         { status: 400 }
@@ -49,7 +53,7 @@ export async function POST(req: NextRequest) {
       id: inquiryId,
       pseudo: user.pseudo,
       discordId: user.discordId,
-      subject: `[Custom Project] ${category} · ${budget} · ${duration}`,
+      subject: `[Custom Project] ${[category, budget, duration].filter(Boolean).join(' · ')}`,
       createdAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + 72 * 60 * 60 * 1000).toISOString(),
       status: 'pending',
@@ -62,13 +66,13 @@ export async function POST(req: NextRequest) {
             `CLIENT: ${user.pseudo}`,
             `DISCORD: ${user.discordTag || user.pseudo} (${user.discordId})`,
             `PIECE: ${category}`,
-            `WORN BY: ${pedTarget}`,
-            `DELIVERY: ${duration}`,
-            `BUDGET: ${budget}`,
+            pedTarget ? `WORN BY: ${pedTarget}` : null,
+            duration ? `DELIVERY: ${duration}` : null,
+            budget ? `BUDGET: ${budget}` : null,
             referencedPiece ? `INSPIRED BY: ${referencedPiece}` : null,
             '',
             'VISION:',
-            vision,
+            vision || '-',
             attachments.length ? `\nREFERENCE IMAGES: ${attachments.length}` : null,
           ].filter((l) => l !== null).join('\n'),
           createdAt: now.toISOString(),

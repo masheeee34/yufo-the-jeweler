@@ -101,25 +101,13 @@ function CollectionsFilterGrid() {
       <section className="mb-12" aria-label="Collection Overview">
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-end">
           
-          {/* Left Text */}
-          <div className="lg:col-span-7 flex flex-col justify-end pb-2">
+          <div className="lg:col-span-12 flex flex-col justify-end pb-2">
             <h1 className="text-3xl sm:text-4xl lg:text-[52px] tracking-[-1px] uppercase font-normal text-white mb-4 leading-[0.95]">
               {currentTitle}
             </h1>
             <p className="text-[15px] text-[#888888] leading-[1.5] max-w-xl">
               {currentSubtitle}
             </p>
-          </div>
-
-          {/* Right Editorial Visual (Pure Clean Image) */}
-          <div className="lg:col-span-5 relative aspect-[16/9] lg:aspect-[3/2] w-full overflow-hidden bg-black">
-            <Image
-              src="/assets/media/campaign_portrait_medallion.jpg"
-              alt="YUFO Collection Banner"
-              fill
-              priority
-              className="object-cover object-center grayscale-[15%] hover:grayscale-0 transition-all duration-700"
-            />
           </div>
 
         </div>
@@ -159,7 +147,7 @@ function CollectionsFilterGrid() {
             </button>
           ))}
 
-          <span className="text-[#33333d] select-none">/</span>
+          {cols.length > 0 && <span className="text-[#33333d] select-none">/</span>}
 
           {cols.map((col) => (
             <button
@@ -183,7 +171,6 @@ function CollectionsFilterGrid() {
       {/* Counter Row (Clean Minimal Text — Zero E-commerce Sort Dropdown) */}
       <div className="flex items-center justify-between pb-4 mb-4 text-[12px] uppercase tracking-[0.06em] text-[#666666]">
         <span>{filteredProducts.length} Creations</span>
-        <span className="text-[#555555]">.YDD / .YTD Rigged Ready</span>
       </div>
 
       {/* Product Grid — EXACT Alex Moss NY (4.8px gap, ZERO CADRES, ZERO CARD BORDERS) */}

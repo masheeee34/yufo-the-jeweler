@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { audit, requireAdmin } from '@/lib/team';
+import fs from 'fs';
+import path from 'path';
+import { audit, getAudit, requireAdmin } from '@/lib/team';
+import { writeJson } from '@/lib/jsonStore';
 import { ChatMessage, getRequests, saveRequests, PaymentStatus, ProjectData, ProjectStage } from '@/lib/requestsDb';
 import { projectInfo, requestKind } from '@/lib/commerce';
-import { MAX_ATTACHMENTS, uploadExists } from '@/lib/uploads';
-import { ownerOf } from '@/lib/filesDb';
-import { notifyCustomer } from '@/lib/customersDb';
+import { MAX_ATTACHMENTS, UPLOADS_DIR, uploadExists, uploadReferenced } from '@/lib/uploads';
+import { getGrants, ownerOf, saveGrants } from '@/lib/filesDb';
+import { getCustomerRecords, notifyCustomer, saveCustomerRecord } from '@/lib/customersDb';
 
 export const dynamic = 'force-dynamic';
 
@@ -136,4 +139,48 @@ export async function POST(req: NextRequest) {
   }
   saveRequests(requests);
   return NextResponse.json({ success: true, project, message });
+}
+
+// Suppression définitive d'un projet sur mesure (Founder et Admin) : la demande, sa conversation,
+// ses images (références et previews), les accès aux fichiers livrés, les notifications du client
+// et les lignes du journal qui le concernent. Seule reste une ligne « supprimé définitivement ».
+export async function DELETE(req: NextRequest) {
+  const ctx = requireAdmin(req, 'projects');
+  if (ctx instanceof NextResponse) return ctx;
+  if (ctx.member.role !== 'founder' && ctx.member.role !== 'admin') {
+    return NextResponse.json({ error: 'Réservé aux Founders et Admins.' }, { status: 403 });
+  }
+  const id = req.nextUrl.searchParams.get('id') || '';
+  const requests = getRequests();
+  const r = requests.find((x) => x.id === id && requestKind(x) === 'project');
+  if (!r) return NextResponse.json({ error: 'Projet introuvable' }, { status: 404 });
+
+  const images = new Set<string>([...r.messages.flatMap((m) => m.attachments || []), ...(r.project?.previews || []).map((p) => p.file)]);
+  // Tickets reliés au projet : ils restent, mais ne pointent plus vers lui.
+  for (const x of requests) if (x.linkedId === id) delete x.linkedId;
+  saveRequests(requests.filter((x) => x !== r));
+
+  const grants = getGrants();
+  const keptGrants = grants.filter((g) => g.refId !== id);
+  if (keptGrants.length !== grants.length) saveGrants(keptGrants);
+
+  const records = getCustomerRecords();
+  for (const [userId, rec] of Object.entries(records)) {
+    const kept = (rec.notifications || []).filter((n) => !`${n.title} ${n.text || ''} ${n.href || ''}`.includes(id));
+    if (kept.length !== (rec.notifications || []).length) saveCustomerRecord(userId, { ...rec, notifications: kept });
+  }
+
+  writeJson('audit.json', getAudit().filter((e) => e.target !== id));
+
+  let removedImages = 0;
+  for (const name of images) {
+    if (!uploadExists(name) || uploadReferenced(name)) continue;
+    try {
+      fs.unlinkSync(path.join(UPLOADS_DIR, name));
+      removedImages++;
+    } catch {}
+  }
+
+  audit(ctx, 'project.purge', { target: id, detail: 'Projet supprimé définitivement' });
+  return NextResponse.json({ success: true, removedImages, removedGrants: grants.length - keptGrants.length });
 }

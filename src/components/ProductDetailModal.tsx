@@ -4,7 +4,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import Image from 'next/image';
 import { Product } from '../lib/products';
 import { useCart } from '../lib/cartContext';
-import { X, ShoppingBag, Sparkles, ShieldCheck, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
+import { X, ShoppingBag, Sparkles, ChevronLeft, ChevronRight, ChevronDown } from 'lucide-react';
 
 interface ProductDetailModalProps {
   product: Product | null;
@@ -26,7 +26,7 @@ function detailsOf(p: Product) {
 }
 
 // Carrousel : grande image qui glisse, flèches, balayage tactile et vignettes en dessous.
-function Gallery({ images, name, reference }: { images: string[]; name: string; reference: string }) {
+function Gallery({ images, name }: { images: string[]; name: string }) {
   const [i, setI] = useState(0);
   const startX = useRef<number | null>(null);
   const go = (n: number) => setI((n + images.length) % images.length);
@@ -63,15 +63,6 @@ function Gallery({ images, name, reference }: { images: string[]; name: string; 
         {/* Flou progressif en bas de l'image, sous les informations */}
         <div className="progressive-blur pointer-events-none absolute inset-x-0 bottom-0 h-28" aria-hidden="true">
           <span /><span /><span /><span />
-        </div>
-
-        <div className="absolute top-3.5 left-3.5 flex items-center gap-2">
-          <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-white font-medium border border-white/10 backdrop-blur-md">.ydd / .ytd</span>
-          <span className="text-[10px] text-zinc-400 font-mono">REF. {reference}</span>
-        </div>
-        <div className="absolute bottom-3.5 right-3.5 text-[10px] text-zinc-300 flex items-center gap-1.5 bg-black/40 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/10">
-          <ShieldCheck className="w-3 h-3 text-emerald-400" />
-          <span>FiveM rigged ready</span>
         </div>
 
         {images.length > 1 && (
@@ -158,12 +149,11 @@ export const ProductDetailModal: React.FC<ProductDetailModalProps> = ({ product,
         </button>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10 pt-2">
-          <Gallery images={images} name={product.name} reference={product.reference} />
+          <Gallery images={images} name={product.name} />
 
           <div className="space-y-5 md:pt-4">
             <div>
-              <span className="text-xs text-zinc-400 font-medium">{product.brand}</span>
-              <h2 className="text-2xl sm:text-3xl font-semibold text-white mt-1 tracking-tight">{product.name}</h2>
+              <h2 className="text-2xl sm:text-3xl font-semibold text-white tracking-tight">{product.name}</h2>
               <div className="text-xl font-semibold text-zinc-100 mt-2">{product.priceDisplay}</div>
               {product.shortDescription && <p className="text-sm text-zinc-400 mt-2">{product.shortDescription}</p>}
             </div>

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { IconBolt, IconCheck, IconLink, IconPhotoPlus, IconSend, IconSparkles, IconTarget } from '@tabler/icons-react';
+import { IconBolt, IconCheck, IconLink, IconPhotoPlus, IconSend, IconSparkles, IconTarget, IconTrash } from '@tabler/icons-react';
 import { useAdmin } from '@/components/admin/AdminContext';
 import { Badge, Button, Card, Drawer, Empty, Field, fullDate, Input, Loading, money, NotesBox, PageHeader, Select, Tabs, Textarea, timeAgo, Toggle, uploadImages } from '@/components/admin/ui';
 import { PAYMENT, STAGE, STAGE_ORDER } from '@/components/admin/labels';
@@ -113,7 +113,7 @@ export default function ProjectsPage() {
       )}
 
       <Drawer open={!!open} onClose={() => setOpen(null)} width={760} title={open ? <>{open.project.piece || 'Custom piece'} <span className="text-zinc-500 font-normal">· {open.customer}</span></> : ''}>
-        {open && <ProjectDetail p={open} patch={patch} action={action} reloadNotes={load} />}
+        {open && <ProjectDetail p={open} patch={patch} action={action} reloadNotes={load} onDeleted={async () => { setOpen(null); await load(); refresh(); }} />}
       </Drawer>
     </>
   );
@@ -139,11 +139,46 @@ function DeliverFromFiles({ projectId, onDone }: { projectId: string; onDone: ()
   );
 }
 
-function ProjectDetail({ p, patch, action, reloadNotes }: {
+// Suppression définitive : réservée aux Founders et Admins, confirmée deux fois.
+function DeleteProject({ p, onDeleted }: { p: ProjectRow; onDeleted: () => Promise<void> }) {
+  const { api, toast, confirm, me } = useAdmin();
+  const [typed, setTyped] = useState('');
+  if (me.role !== 'founder' && me.role !== 'admin') return null;
+  return (
+    <section className="rounded-xl border border-rose-500/20 bg-rose-500/[0.04] p-4">
+      <h3 className="text-[13px] font-semibold text-rose-200">Supprimer définitivement</h3>
+      <p className="text-[12px] text-zinc-400 mt-1 leading-relaxed">
+        Efface le projet, la conversation, les notes internes, les images de référence et les previews, les accès aux fichiers livrés,
+        les notifications du client et l’historique du projet dans Activity logs. Irréversible : il n’y a pas de corbeille.
+      </p>
+      <div className="mt-3 flex flex-col sm:flex-row gap-2">
+        <Input value={typed} onChange={(e) => setTyped(e.target.value)} placeholder={`Tapez ${p.id} pour confirmer`} className="sm:w-72" />
+        <Button
+          variant="danger"
+          disabled={typed.trim() !== p.id}
+          icon={<IconTrash size={15} />}
+          onClick={async () => {
+            if (!(await confirm({ title: `Supprimer ${p.id} pour de bon ?`, message: 'Toutes les traces du projet seront effacées. Cette action est irréversible.', danger: true, confirmLabel: 'Supprimer définitivement' }))) return;
+            const d = await api<{ removedImages: number }>(`/api/admin/projects?id=${encodeURIComponent(p.id)}`, { method: 'DELETE' });
+            if (d) {
+              toast(`Projet supprimé (${d.removedImages} image${d.removedImages > 1 ? 's' : ''} effacée${d.removedImages > 1 ? 's' : ''})`);
+              await onDeleted();
+            }
+          }}
+        >
+          Supprimer définitivement
+        </Button>
+      </div>
+    </section>
+  );
+}
+
+function ProjectDetail({ p, patch, action, reloadNotes, onDeleted }: {
   p: ProjectRow;
   patch: (b: Record<string, unknown>, label?: string) => Promise<void>;
   action: (b: Record<string, unknown>, label: string) => Promise<boolean>;
   reloadNotes: () => Promise<void>;
+  onDeleted: () => Promise<void>;
 }) {
   const { api, toast } = useAdmin();
   const [reply, setReply] = useState('');
@@ -278,6 +313,8 @@ function ProjectDetail({ p, patch, action, reloadNotes }: {
       </section>
 
       <NotesBox notes={p.notes} onAdd={async (text) => { if (await api('/api/admin/notes', { method: 'POST', body: { requestId: p.id, text } })) { toast('Note ajoutée'); await reloadNotes(); } }} />
+
+      <DeleteProject p={p} onDeleted={onDeleted} />
     </div>
   );
 }

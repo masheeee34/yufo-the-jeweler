@@ -88,9 +88,10 @@ function ReviewCard({ rev }: { rev: ReviewItem }) {
 
 interface ReviewsMarqueeProps {
   initialReviews?: ReviewItem[];
+  above?: React.ReactNode; // affiché entre le titre et les avis (ex. avatars des clients)
 }
 
-export default function ReviewsMarquee({ initialReviews }: ReviewsMarqueeProps) {
+export default function ReviewsMarquee({ initialReviews, above }: ReviewsMarqueeProps) {
   const [reviews, setReviews] = useState<ReviewItem[]>(
     initialReviews && initialReviews.length > 0
       ? initialReviews
@@ -135,6 +136,7 @@ export default function ReviewsMarquee({ initialReviews }: ReviewsMarqueeProps) 
         <p className="text-xs sm:text-sm text-zinc-400 mt-2 max-w-lg mx-auto leading-relaxed">
           Their experience says more than we ever could.
         </p>
+        {above && <div className="mt-8">{above}</div>}
       </div>
 
       {/* Masques de dégradé sur les côtés pour une transition luxueuse */}

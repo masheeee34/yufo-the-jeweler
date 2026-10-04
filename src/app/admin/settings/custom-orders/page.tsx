@@ -10,28 +10,6 @@ const MODES = [
   { id: 'closed', label: 'Closed', text: 'Plus aucune nouvelle demande : le formulaire invite à rejoindre le Discord.' },
 ] as const;
 
-// Réponses à « Who will wear it? » (boutons du formulaire sur mesure).
-function PedOptions({ value, onChange }: { value: string[]; onChange: (o: string[]) => void }) {
-  const [draft, setDraft] = React.useState('');
-  return (
-    <Field label="Réponses « Who will wear it? »" hint="Boutons proposés au client dans le formulaire. 8 maximum.">
-      <div className="flex flex-wrap gap-2 mb-2">
-        {value.map((o, i) => (
-          <span key={o + i} className="inline-flex items-center gap-1 h-8 pl-3 pr-1 rounded-lg bg-white/[0.08] text-[12px] text-white">
-            {o}
-            <button onClick={() => onChange(value.filter((_, n) => n !== i))} className="w-6 h-6 rounded hover:bg-white/10 text-zinc-400 hover:text-white" aria-label={`Retirer ${o}`}>✕</button>
-          </span>
-        ))}
-      </div>
-      <div className="flex gap-2">
-        <Input value={draft} onChange={(e) => setDraft(e.target.value)} placeholder="Nouvelle réponse (ex. Kids ped)" className="h-9"
-          onKeyDown={(e) => { if (e.key === 'Enter' && draft.trim() && value.length < 8) { onChange([...value, draft.trim()]); setDraft(''); } }} />
-        <Button size="sm" disabled={!draft.trim() || value.length >= 8} onClick={() => { onChange([...value, draft.trim()]); setDraft(''); }}>Ajouter</Button>
-      </div>
-    </Field>
-  );
-}
-
 export default function CustomOrdersSettingsPage() {
   const { values: v, setValues, save, saving } = useSettings('customOrders');
   if (!v) return <Loading />;
@@ -63,9 +41,7 @@ export default function CustomOrdersSettingsPage() {
             <Field label="Budget minimum ($)" hint="Point de départ du compteur de budget du formulaire."><Input type="number" min={0} step="0.01" value={v.budgetMin} onChange={(e) => set('budgetMin', e.target.value)} /></Field>
             <Field label="Palier du budget ($)" hint="Ex. 5 : 24.99 → 29.99 → 34.99…, sans limite."><Input type="number" min={1} step="0.5" value={v.budgetStep} onChange={(e) => set('budgetStep', e.target.value)} /></Field>
             <Field label="Délais proposés" hint="Séparés par des virgules (curseur)."><Input value={v.durations.join(', ')} onChange={(e) => set('durations', e.target.value.split(','))} /></Field>
-            <div className="sm:col-span-2">
-              <PedOptions value={v.pedOptions} onChange={(o) => set('pedOptions', o)} />
-            </div>
+            <p className="sm:col-span-2 text-[12px] text-zinc-500">Les questions, les réponses du ped et tous les textes du formulaire se règlent dans <a href="/admin/settings/custom-form" className="text-white underline underline-offset-2">Settings › Custom form</a>.</p>
             <div className="sm:col-span-2">
               <Field label="Message affiché sur le formulaire (facultatif)" hint="Ex. « 3 slots left this month »."><Textarea rows={2} value={v.note} onChange={(e) => set('note', e.target.value)} /></Field>
             </div>

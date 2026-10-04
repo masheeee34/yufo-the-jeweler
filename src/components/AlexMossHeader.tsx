@@ -103,19 +103,6 @@ export const AlexMossHeader: React.FC<AlexMossHeaderProps> = ({
             </Link>
           </div>
 
-          {/* Center Column: Logo */}
-          <div className="absolute left-1/2 -translate-x-1/2">
-            <Link
-              href="/"
-              className="text-center group block cursor-pointer"
-              aria-label="YUFO The Jeweler Home"
-            >
-              <span className="text-base sm:text-lg lg:text-xl tracking-[0.2em] uppercase font-normal text-white transition-opacity group-hover:opacity-80 block">
-                YUFO THE JEWELER
-              </span>
-            </Link>
-          </div>
-
           {/* Right Column: Actions (Discord, Concierge, Search, Account) */}
           <div className="flex items-center gap-4 sm:gap-6 text-[#999999]">
             {/* Discord Atelier Lounge */}

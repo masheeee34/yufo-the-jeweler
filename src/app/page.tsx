@@ -111,13 +111,7 @@ function HomeContent() {
           </div>
         </section>
 
-        {proof?.enabled && (
-          <section className="pt-14 pb-2 px-5" aria-label="Collectors">
-            <AvatarCircles avatars={proof.avatars} count={proof.count} label={proof.label} show={proof.show} />
-          </section>
-        )}
-
-        <ReviewsMarquee />
+        <ReviewsMarquee above={proof?.enabled ? <AvatarCircles avatars={proof.avatars} count={proof.count} label={proof.label} show={proof.show} /> : null} />
       </main>
 
       <SiteFooter />

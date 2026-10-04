@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { audit, can, diff, requireAdmin } from '@/lib/team';
 import { getSettings, saveSettings, SiteSettings } from '@/lib/settings';
+import { WIZARD_TEXT_KEYS } from '@/lib/wizardDefaults';
 
 export const dynamic = 'force-dynamic';
 
@@ -99,6 +100,30 @@ export async function PUT(req: NextRequest) {
         .slice(0, 8),
     };
     if (s.customOrders.pedOptions.length < 1) return NextResponse.json({ error: 'Au moins une réponse pour le choix du ped.' }, { status: 400 });
+  } else if (section === 'wizard') {
+    const pieces = (Array.isArray(v.pieces) ? v.pieces : [])
+      .map((x: any) => ({ label: str(x?.label, 40), hint: str(x?.hint, 60) }))
+      .filter((x: { label: string }) => x.label)
+      .slice(0, 12);
+    const pedOptions = (Array.isArray(v.pedOptions) ? v.pedOptions : []).map((o: unknown) => str(o, 40)).filter(Boolean).slice(0, 8);
+    if (!pieces.length) return NextResponse.json({ error: 'Au moins un type de pièce.' }, { status: 400 });
+    if (new Set(pieces.map((x: { label: string }) => x.label.toLowerCase())).size !== pieces.length) return NextResponse.json({ error: 'Deux types de pièce portent le même nom.' }, { status: 400 });
+    if (!!v.askPed && !pedOptions.length) return NextResponse.json({ error: 'Au moins une réponse pour le choix du ped.' }, { status: 400 });
+    const texts = {} as SiteSettings['wizard']['texts'];
+    for (const k of WIZARD_TEXT_KEYS) texts[k] = str(v.texts?.[k], 400);
+    s.wizard = {
+      showDiscordButton: !!v.showDiscordButton,
+      askPed: !!v.askPed,
+      pedMultiple: !!v.pedMultiple,
+      pedOptions: pedOptions.length ? pedOptions : s.wizard.pedOptions,
+      askImages: !!v.askImages,
+      maxImages: Math.min(6, Math.max(1, Math.round(Number(v.maxImages) || 6))),
+      askDuration: !!v.askDuration,
+      askBudget: !!v.askBudget,
+      minBriefLength: Math.min(200, Math.max(0, Math.round(Number(v.minBriefLength) || 0))),
+      pieces,
+      texts,
+    };
   } else if (section === 'payments') {
     s.payments = {
       currency: ['USD', 'EUR', 'GBP'].includes(v.currency) ? v.currency : s.payments.currency,
