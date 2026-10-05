@@ -4,7 +4,7 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Sparkles, ShoppingBag } from 'lucide-react';
-import { SiteFooter } from '../components/SiteFooter';
+import { Footer as SiteFooter } from '../components/Footer';
 import { AlexMossHeader } from '../components/AlexMossHeader';
 import { AlexMossChat } from '../components/AlexMossChat';
 import { AccountModal } from '../components/AccountModal';

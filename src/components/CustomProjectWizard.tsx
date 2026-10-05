@@ -200,7 +200,7 @@ export function CustomProjectWizard({
   referencedPiece: string;
   onClearReference: () => void;
 }) {
-  const { user, loading, startDiscordAuth } = useAuth();
+  const { user, loading, active, startDiscordAuth } = useAuth();
 
   const [step, setStep] = useState(0);
   const [sent, setSent] = useState(false);
@@ -365,21 +365,45 @@ export function CustomProjectWizard({
     );
   }
 
-  // Connexion Discord obligatoire avant toute demande
+  // Un compte est nécessaire pour suivre le projet dans son ticket : e-mail ou Discord (au choix).
   if (!loading && !user) {
     return (
       <div className="wiz-card wiz-in-forward">
         {discordButton && <div className="flex justify-end mb-6">{discordButton}</div>}
         <h2 className="text-2xl font-semibold tracking-tight text-white mb-2">{t('signInTitle')}</h2>
         <p className="text-sm text-zinc-400 leading-relaxed mb-7">{t('signInText')}</p>
-        <button
-          type="button"
-          onClick={startDiscordAuth}
-          className="w-full h-12 rounded-full bg-[#5865F2] hover:bg-[#4752c4] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+        <div className="space-y-3">
+          <Link
+            href="/account?next=/custom-orders"
+            className="w-full h-12 rounded-full bg-white hover:bg-zinc-200 text-zinc-950 text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            Sign in or create an account
+          </Link>
+          <button
+            type="button"
+            onClick={() => startDiscordAuth()}
+            className="w-full h-12 rounded-full bg-[#5865F2] hover:bg-[#4752c4] text-white text-sm font-semibold flex items-center justify-center gap-2 transition-colors"
+          >
+            <IconBrandDiscord size={18} />
+            <span>{t('signInButton')}</span>
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Compte ouvert mais pas encore terminé (adresse à confirmer ou @nom à choisir).
+  if (!loading && user && !active) {
+    return (
+      <div className="wiz-card wiz-in-forward">
+        <h2 className="text-2xl font-semibold tracking-tight text-white mb-2">Finish setting up your account</h2>
+        <p className="text-sm text-zinc-400 leading-relaxed mb-7">Confirm your email and choose your username, then come back here to send your request.</p>
+        <Link
+          href="/account?next=/custom-orders"
+          className="w-full h-12 rounded-full bg-white hover:bg-zinc-200 text-zinc-950 text-sm font-semibold flex items-center justify-center transition-colors"
         >
-          <IconBrandDiscord size={18} />
-          <span>{t('signInButton')}</span>
-        </button>
+          Go to my account
+        </Link>
       </div>
     );
   }
@@ -396,7 +420,7 @@ export function CustomProjectWizard({
         <p className="font-mono text-lg text-white mb-7">{ticketId}</p>
         <div className="flex flex-col sm:flex-row gap-3">
           <Link
-            href="/account"
+            href={ticketId ? `/tickets/${ticketId}` : '/tickets'}
             className="flex-1 h-11 rounded-full bg-white hover:bg-zinc-200 text-zinc-950 text-xs font-semibold flex items-center justify-center transition-colors"
           >
             {t('sentButton')}

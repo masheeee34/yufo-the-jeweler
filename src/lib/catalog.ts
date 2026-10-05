@@ -171,7 +171,7 @@ export const ESSENTIALS_CATEGORIES: EssentialCategory[] = [
 export const YUFO_BRAND = {
   name: 'YUFO THE JEWELRY',
   tagline: 'Private Watch & Jewelry Deals · 3D Atelier',
-  whatsapp: process.env.NEXT_PUBLIC_WHATSAPP || '',
+  whatsapp: '+33600000000',
   discord: 'https://discord.gg/yufo',
   email: 'contact@yufothejewelry.com',
 };

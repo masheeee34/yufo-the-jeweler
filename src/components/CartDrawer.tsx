@@ -34,10 +34,6 @@ export const CartDrawer: React.FC = () => {
   const [discordTag, setDiscordTag] = useState('');
   const [fivemId, setFivemId] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'card' | 'keymaster' | 'crypto'>('card');
-  const [cardNumber, setCardNumber] = useState('');
-  const [cardExpiry, setCardExpiry] = useState('');
-  const [cardCvc, setCardCvc] = useState('');
-  const [cardName, setCardName] = useState('');
 
   // Processing & order status
   const [isProcessing, setIsProcessing] = useState(false);
@@ -45,6 +41,7 @@ export const CartDrawer: React.FC = () => {
     orderId: string;
     licenseKey: string;
     itemsSummary: string;
+    guest?: boolean;
   } | null>(null);
 
   // Sync logged-in user data
@@ -94,20 +91,16 @@ export const CartDrawer: React.FC = () => {
           orderId: data.orderId,
           licenseKey: data.licenseKey,
           itemsSummary: items.map((i) => `${i.quantity}x ${i.product.name}`).join(', '),
+          guest: !!data.guest,
         });
         clearCart();
       } else {
         alert(data.error || 'Checkout could not be processed.');
       }
     } catch (err) {
+      // Pas de fausse confirmation si la commande n'a pas pu être enregistrée.
       console.error('Checkout error:', err);
-      // Fallback offline simulation
-      setConfirmedOrder({
-        orderId: `YUF-ORD-${Math.floor(100000 + Math.random() * 900000)}`,
-        licenseKey: `CFX-ESCROW-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
-        itemsSummary: items.map((i) => `${i.quantity}x ${i.product.name}`).join(', '),
-      });
-      clearCart();
+      alert('Your order could not be sent. Please check your connection and try again.');
     } finally {
       setIsProcessing(false);
     }
@@ -211,9 +204,28 @@ export const CartDrawer: React.FC = () => {
                 <div className="p-4 bg-white/5 border border-white/5 rounded-xl text-left flex items-start gap-3">
                   <Sparkles className="w-4 h-4 text-[#e3e3e3] shrink-0 mt-0.5" />
                   <p className="text-xs text-zinc-300 leading-relaxed">
-                    A download archive with your 3D files and CFX resource files has been dispatched to your email address. You can also review this order anytime in your member account.
+                    Your order is registered. The atelier sends you the payment details by email, and your files are unlocked in your library as soon as the payment is confirmed.
                   </p>
                 </div>
+
+                {confirmedOrder.guest && (
+                  <div className="p-4 bg-zinc-950 border border-white/10 rounded-2xl text-left space-y-3">
+                    <p className="text-sm font-semibold text-white">Save this purchase in your library</p>
+                    <p className="text-xs text-zinc-400 leading-relaxed">Create an account with {email || 'this email'} to find your files and orders anytime.</p>
+                    <a
+                      href="/account?signup=1"
+                      onClick={() => {
+                        try {
+                          sessionStorage.setItem('yufo_signup_email', email.trim());
+                        } catch {}
+                      }}
+                      className="w-full h-11 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs rounded-full transition-colors flex items-center justify-center gap-2"
+                    >
+                      Create an account
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </a>
+                  </div>
+                )}
 
                 <div className="pt-2 flex flex-col gap-2.5">
                   <button
@@ -416,69 +428,14 @@ export const CartDrawer: React.FC = () => {
 
                     {/* Method details */}
                     {paymentMethod === 'card' && (
-                      <div className="p-4 bg-zinc-950 border border-white/10 rounded-2xl space-y-3 animate-in fade-in duration-200">
-                        <div>
-                          <label className="block text-[11px] text-zinc-400 mb-1">
-                            Card number
-                          </label>
-                          <div className="relative">
-                            <input
-                              type="text"
-                              required
-                              value={cardNumber}
-                              onChange={(e) => setCardNumber(e.target.value)}
-                              placeholder="•••• •••• •••• 4242"
-                              className="w-full h-10 px-3.5 bg-zinc-900 border border-white/10 focus:border-white/30 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none transition-colors"
-                            />
-                            <div className="absolute right-3 top-2.5 flex items-center gap-1 text-[10px] text-zinc-500 font-mono">
-                              <span>VISA</span>
-                              <span>MC</span>
-                            </div>
-                          </div>
+                      <div className="p-4 bg-zinc-950 border border-white/10 rounded-2xl space-y-2 text-xs text-zinc-300 animate-in fade-in duration-200">
+                        <div className="flex items-center gap-2 text-white font-medium">
+                          <CreditCard className="w-3.5 h-3.5 text-zinc-400" />
+                          <span>Secure card payment</span>
                         </div>
-
-                        <div className="grid grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[11px] text-zinc-400 mb-1">
-                              Expiry date
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={cardExpiry}
-                              onChange={(e) => setCardExpiry(e.target.value)}
-                              placeholder="MM / YY"
-                              className="w-full h-10 px-3.5 bg-zinc-900 border border-white/10 focus:border-white/30 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none transition-colors"
-                            />
-                          </div>
-                          <div>
-                            <label className="block text-[11px] text-zinc-400 mb-1">
-                              Security code (CVC)
-                            </label>
-                            <input
-                              type="text"
-                              required
-                              value={cardCvc}
-                              onChange={(e) => setCardCvc(e.target.value)}
-                              placeholder="CVC"
-                              className="w-full h-10 px-3.5 bg-zinc-900 border border-white/10 focus:border-white/30 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none transition-colors"
-                            />
-                          </div>
-                        </div>
-
-                        <div>
-                          <label className="block text-[11px] text-zinc-400 mb-1">
-                            Cardholder full name
-                          </label>
-                          <input
-                            type="text"
-                            required
-                            value={cardName}
-                            onChange={(e) => setCardName(e.target.value)}
-                            placeholder="Full name on card"
-                            className="w-full h-10 px-3.5 bg-zinc-900 border border-white/10 focus:border-white/30 rounded-lg text-xs text-white placeholder:text-zinc-600 outline-none transition-colors"
-                          />
-                        </div>
+                        <p className="text-[11px] text-zinc-400 leading-relaxed">
+                          No card details are asked here. Your order is reserved now, and the atelier sends you a secure payment link by email.
+                        </p>
                       </div>
                     )}
 

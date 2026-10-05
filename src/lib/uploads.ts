@@ -4,7 +4,7 @@ import path from 'path';
 // Images jointes aux demandes sur mesure : stockées hors de public/ (data/uploads),
 // servies par /api/uploads/<nom>. Le nom est aléatoire et sert d'identifiant.
 export const UPLOADS_DIR = path.join(process.cwd(), 'data', 'uploads');
-export const UPLOAD_NAME = /^[a-f0-9]{32}\.(jpg|png|webp|gif)$/;
+export const UPLOAD_NAME = /^[a-f0-9]{32}\.(jpg|png|webp|gif|mp3|wav|ogg)$/;
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 export const MAX_ATTACHMENTS = 6;
 
@@ -13,6 +13,9 @@ export const MIME: Record<string, string> = {
   png: 'image/png',
   webp: 'image/webp',
   gif: 'image/gif',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  ogg: 'audio/ogg',
 };
 
 // Type réel du fichier d'après ses premiers octets (on ne fait pas confiance au nom ni au type annoncé).
@@ -24,6 +27,18 @@ export function sniffImage(buf: Buffer): keyof typeof MIME | null {
   if (buf.toString('ascii', 0, 4) === 'GIF8') return 'gif';
   return null;
 }
+
+// Son de notification envoyé depuis le back-office (MP3, WAV ou OGG).
+export function sniffAudio(buf: Buffer): 'mp3' | 'wav' | 'ogg' | null {
+  if (buf.length < 12) return null;
+  if (buf.toString('ascii', 0, 3) === 'ID3' || (buf[0] === 0xff && (buf[1] & 0xe0) === 0xe0)) return 'mp3';
+  if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WAVE') return 'wav';
+  if (buf.toString('ascii', 0, 4) === 'OggS') return 'ogg';
+  return null;
+}
+
+// Les images jointes aux messages ne doivent jamais être des sons (et inversement).
+export const isImageUpload = (name: string) => /\.(jpg|png|webp|gif)$/.test(name);
 
 export function uploadExists(name: string): boolean {
   return UPLOAD_NAME.test(name) && fs.existsSync(path.join(UPLOADS_DIR, name));

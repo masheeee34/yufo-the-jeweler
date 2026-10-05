@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useMemo, useEffect, Suspense } from 'react';
-import { SiteFooter } from '../../../components/SiteFooter';
+import { Footer as SiteFooter } from '../../../components/Footer';
 import { ProductDetailModal } from '../../../components/ProductDetailModal';
 import { LoaderOne } from '../../../components/LoaderOne';
+import { ProductCard } from '../../../components/ProductCard';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
@@ -173,44 +174,11 @@ function CollectionsFilterGrid() {
         <span>{filteredProducts.length} Creations</span>
       </div>
 
-      {/* Product Grid — EXACT Alex Moss NY (4.8px gap, ZERO CADRES, ZERO CARD BORDERS) */}
-      <section className="grid grid-cols-2 md:grid-cols-4 gap-[4.8px]" aria-label="Creations Archive">
-        {filteredProducts.map((product) => {
-          return (
-            <article
-              key={product.id}
-              onClick={() => setSelectedProduct(product)}
-              className="group cursor-pointer select-none"
-            >
-              {/* Image Container 1:1 Aspect Ratio (Zero Border) */}
-              <div className="relative aspect-square w-full bg-[#0d0d12] overflow-hidden">
-                <Image
-                  src={product.image}
-                  alt={product.name}
-                  fill
-                  className="object-contain p-3 group-hover:scale-105 transition-transform duration-500"
-                />
-              </div>
-
-              {/* Info Row (Pure Alex Moss typography) */}
-              <div className="pt-2.5 pb-4 flex items-start justify-between">
-                <div>
-                  <h2 className="text-[14px] text-white uppercase tracking-[0.04em] font-normal leading-snug">
-                    {product.name}
-                  </h2>
-                  <p className="text-[12px] text-[#777777] uppercase tracking-[0.04em] mt-0.5">
-                    {product.specs.material}
-                  </p>
-                </div>
-                <div className="text-right pl-2">
-                  <span className="text-[13px] text-[#cccccc] uppercase tracking-[0.04em]">
-                    {product.priceDisplay}
-                  </span>
-                </div>
-              </div>
-            </article>
-          );
-        })}
+      {/* Grille de cartes produit (modèle Spectrum UI) */}
+      <section className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5" aria-label="Creations Archive">
+        {filteredProducts.map((product) => (
+          <ProductCard key={product.id} product={product} onOpen={() => setSelectedProduct(product)} />
+        ))}
       </section>
 
       {/* Product Inspection Modal */}

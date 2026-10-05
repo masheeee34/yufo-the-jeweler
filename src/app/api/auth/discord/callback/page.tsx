@@ -31,14 +31,17 @@ function CallbackContent() {
           return;
         }
 
+        // Liaison de Discord à un compte déjà ouvert (demandée depuis les réglages du compte).
+        let link = false;
+        try {
+          link = sessionStorage.getItem('yufo_discord_link') === '1';
+          sessionStorage.removeItem('yufo_discord_link');
+        } catch {}
+
         const res = await fetch('/api/auth/discord', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            accessToken,
-            code,
-            redirectUri: window.location.origin + '/api/auth/discord/callback',
-          }),
+          body: JSON.stringify({ accessToken, code, link }),
         });
 
         const data = await res.json();
@@ -61,7 +64,7 @@ function CallbackContent() {
 
         // Redirect after brief delay
         // Retour vers la page qui a demandé la connexion (ex. le back-office), sinon l'espace client.
-        let returnTo = '/account';
+        let returnTo = link ? '/account?tab=settings' : '/account';
         try {
           const saved = sessionStorage.getItem('yufo_return_to');
           if (saved && saved.startsWith('/') && !saved.startsWith('//')) returnTo = saved;
@@ -129,8 +132,8 @@ function CallbackContent() {
                 <span className="text-zinc-200 font-medium">Yufo The Jeweler</span>
               </div>
               <div className="flex justify-between">
-                <span className="text-zinc-500">Guild ID:</span>
-                <span className="text-zinc-400 font-mono text-[11px]">1449069547876516106</span>
+                <span className="text-zinc-500">Other options:</span>
+                <span className="text-zinc-400 text-[11px]">Sign in with email, or check out as a guest</span>
               </div>
             </div>
 

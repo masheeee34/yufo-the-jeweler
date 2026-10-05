@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { YUFO_PRODUCTS, CATEGORIES_NAV, ProductCategory, Product } from '../lib/products';
 import { useCart } from '../lib/cartContext';
 import { ProductDetailModal } from './ProductDetailModal';
+import { ProductCard } from './ProductCard';
 import { IconSearch, IconX, IconCheck, IconArrowUpRight, IconShoppingBag } from '@tabler/icons-react';
 
 interface VaultCatalogModalProps {
@@ -198,78 +199,9 @@ export const VaultCatalogModal: React.FC<VaultCatalogModalProps> = ({
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5">
               {filteredProducts.map((product) => (
-                <div
-                  key={product.id}
-                  onClick={() => setSelectedProduct(product)}
-                  className="group cursor-pointer bg-[#0b0b0e] border border-white/10 hover:border-white/35 flex flex-col justify-between transition-all duration-300 overflow-hidden"
-                >
-                  {/* Card Header Reference */}
-                  <div className="p-3.5 border-b border-white/[0.06] flex items-center justify-between text-[9px] font-mono uppercase tracking-[0.2em] text-zinc-500">
-                    <span>REF. {product.reference}</span>
-                    <span className="text-zinc-400">{product.brand}</span>
-                  </div>
-
-                  {/* Image Display */}
-                  <div className="relative aspect-square w-full bg-[#050506] flex items-center justify-center p-6 overflow-hidden">
-                    <div className="relative w-full h-full transform group-hover:scale-105 transition-transform duration-500 ease-out">
-                      <Image
-                        src={product.image}
-                        alt={product.name}
-                        fill
-                        className="object-contain p-2"
-                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 25vw"
-                      />
-                    </div>
-
-                    <span className="absolute bottom-3 left-3 text-[8px] font-mono uppercase tracking-widest px-2 py-0.5 border border-white/15 bg-black/80 backdrop-blur-sm text-zinc-300">
-                      FIVEM PED WEIGHTED
-                    </span>
-                  </div>
-
-                  {/* Info & Purchase */}
-                  <div className="p-5 border-t border-white/10 bg-[#09090c] flex flex-col justify-between flex-1 space-y-4">
-                    <div>
-                      <h3 className="font-display font-semibold text-sm uppercase text-white tracking-wide group-hover:text-zinc-200 line-clamp-1">
-                        {product.name}
-                      </h3>
-                      <p className="text-xs text-zinc-400 font-light mt-1 line-clamp-1">
-                        {product.shortDescription}
-                      </p>
-                    </div>
-
-                    <div className="pt-3 border-t border-white/[0.06] flex items-center justify-between">
-                      <div className="font-mono text-sm font-medium tracking-wider text-white">
-                        {product.priceDisplay}
-                      </div>
-
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={(e) => handleAdd(product, e)}
-                          className={`px-3 py-1.5 font-mono text-[9px] uppercase tracking-[0.2em] font-semibold border transition-all cursor-pointer flex items-center gap-1.5 ${
-                            addedId === product.id
-                              ? 'border-emerald-500 bg-emerald-500/20 text-emerald-300'
-                              : 'border-white/20 bg-white/[0.04] text-white hover:bg-white hover:text-black hover:border-white'
-                          }`}
-                        >
-                          {addedId === product.id ? (
-                            <>
-                              <IconCheck size={11} />
-                              <span>Allocated</span>
-                            </>
-                          ) : (
-                            <>
-                              <IconShoppingBag size={11} />
-                              <span>Acquire</span>
-                            </>
-                          )}
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
+                <ProductCard key={product.id} product={product} onOpen={() => setSelectedProduct(product)} />
               ))}
             </div>
           )}

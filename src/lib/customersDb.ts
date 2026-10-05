@@ -5,7 +5,8 @@ import { InternalNote } from './requestsDb';
 // Notification visible par le client (cloche de l'en-tête).
 export interface ClientNotification {
   id: string;
-  type: 'discount' | 'order' | 'project' | 'files';
+  type: 'discount' | 'order' | 'project' | 'files' | 'ticket';
+  key?: string; // regroupe les notifications d'un même sujet (ex. nouveaux messages d'un ticket)
   title: string;
   text: string;
   href?: string;
@@ -40,9 +41,11 @@ export function saveCustomerRecord(id: string, rec: CustomerRecord) {
 }
 
 // Ajoute une notification au client (les 30 plus récentes sont gardées).
+// Avec une clé, une notification encore non lue du même sujet est remplacée au lieu d'être empilée.
 export function notifyCustomer(userId: string, n: Omit<ClientNotification, 'id' | 'at'>) {
   const rec = getCustomerRecord(userId);
-  const list = [{ ...n, id: crypto.randomBytes(6).toString('hex'), at: new Date().toISOString() }, ...(rec.notifications || [])];
+  const others = (rec.notifications || []).filter((x) => !(n.key && x.key === n.key && !x.read && !x.dismissed));
+  const list = [{ ...n, id: crypto.randomBytes(6).toString('hex'), at: new Date().toISOString() }, ...others];
   rec.notifications = list.slice(0, 30);
   saveCustomerRecord(userId, rec);
 }

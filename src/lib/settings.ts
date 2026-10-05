@@ -1,5 +1,7 @@
 import { readJson, writeJson } from './jsonStore';
 import { DEFAULT_WIZARD, WizardSettings } from './wizardDefaults';
+import { DEFAULT_FOOTER, FooterSettings } from './footerDefaults';
+import { DEFAULT_TICKETS, TicketSettings } from './ticketDefaults';
 
 // Réglages du site modifiables depuis Settings. Les secrets (clé Stripe secrète…) n'y sont jamais stockés :
 // ils restent dans les variables d'environnement du serveur.
@@ -55,7 +57,10 @@ export interface SiteSettings {
   };
   security: {
     sessionDays: number;
+    discordGuildRequired: boolean; // connexion Discord réservée aux membres du serveur
   };
+  footer: FooterSettings;
+  tickets: TicketSettings;
 }
 
 export const DEFAULT_SETTINGS: SiteSettings = {
@@ -110,7 +115,10 @@ export const DEFAULT_SETTINGS: SiteSettings = {
   },
   security: {
     sessionDays: 30,
+    discordGuildRequired: false,
   },
+  footer: DEFAULT_FOOTER,
+  tickets: DEFAULT_TICKETS,
 };
 
 export function getSettings(): SiteSettings {
@@ -134,6 +142,12 @@ export function getSettings(): SiteSettings {
     },
     payments: { ...DEFAULT_SETTINGS.payments, ...saved.payments },
     security: { ...DEFAULT_SETTINGS.security, ...saved.security },
+    footer: { ...DEFAULT_SETTINGS.footer, ...saved.footer },
+    tickets: {
+      ...DEFAULT_SETTINGS.tickets,
+      ...saved.tickets,
+      defaultPerms: { ...DEFAULT_SETTINGS.tickets.defaultPerms, ...saved.tickets?.defaultPerms },
+    },
   };
 }
 
@@ -152,5 +166,7 @@ export function publicSettings() {
     customOrders: s.customOrders,
     wizard: s.wizard,
     payments: { currency: s.payments.currency, methods: s.payments.methods, stripeEnabled: s.payments.stripeEnabled },
+    footer: s.footer,
+    tickets: { statuses: s.tickets.statuses, sound: s.tickets.sound, soundVolume: s.tickets.soundVolume, maxFileMb: s.tickets.maxFileMb },
   };
 }

@@ -73,7 +73,10 @@ export function productsUsing(fileId: string) {
 // Compte client d'une commande (Discord en priorité).
 export function ownerOf(r: ClientRequest): UserProfile | null {
   const users = getUsers();
-  const u = users.find((x) => x.discordId && x.discordId === r.discordId) || users.find((x) => belongsTo(r, x));
+  const u =
+    (r.userId ? users.find((x) => x.id === r.userId) : undefined) ||
+    users.find((x) => x.discordId && x.discordId === r.discordId) ||
+    users.find((x) => belongsTo(r, x));
   if (!u) return null;
   const { passwordHash: _h, salt: _s, ...profile } = u;
   return profile;

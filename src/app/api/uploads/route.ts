@@ -3,13 +3,14 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { getSessionUser } from '../../../lib/session';
+import { isActive } from '../../../lib/usersDb';
 import { MAX_UPLOAD_BYTES, UPLOADS_DIR, sniffImage } from '../../../lib/uploads';
 
-// Envoi d'une image de référence pour une demande sur mesure (comptes Discord uniquement).
+// Envoi d'une image (demande sur mesure, message de ticket, réglages) : comptes actifs uniquement.
 export async function POST(req: NextRequest) {
   const user = getSessionUser(req);
-  if (!user || !user.discordId) {
-    return NextResponse.json({ error: 'Please sign in with Discord first.' }, { status: 401 });
+  if (!user || !isActive(user)) {
+    return NextResponse.json({ error: 'Please sign in first.' }, { status: 401 });
   }
 
   try {

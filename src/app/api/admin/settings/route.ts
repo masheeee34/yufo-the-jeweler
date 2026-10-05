@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { audit, can, diff, requireAdmin } from '@/lib/team';
 import { getSettings, saveSettings, SiteSettings } from '@/lib/settings';
 import { WIZARD_TEXT_KEYS } from '@/lib/wizardDefaults';
+import { FOOTER_LIMITS } from '@/lib/footerDefaults';
+import { STATUS_TONES, TicketStatus } from '@/lib/ticketDefaults';
+import { mailConfigured } from '@/lib/mailer';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +26,7 @@ export async function GET(req: NextRequest) {
     settings: getSettings(),
     // Les secrets ne quittent jamais le serveur : on indique seulement s'ils sont configurés.
     stripeSecretConfigured: !!process.env.STRIPE_SECRET_KEY,
+    mailConfigured: mailConfigured(),
     canPayments: can(ctx.member.role, 'payments'),
     canSecurity: can(ctx.member.role, 'security'),
   });
@@ -132,7 +136,61 @@ export async function PUT(req: NextRequest) {
       stripeEnabled: !!v.stripeEnabled && !!process.env.STRIPE_SECRET_KEY,
     };
   } else if (section === 'security') {
-    s.security = { sessionDays: Math.min(90, Math.max(1, Math.round(Number(v.sessionDays) || 30))) };
+    s.security = {
+      sessionDays: Math.min(90, Math.max(1, Math.round(Number(v.sessionDays) || 30))),
+      discordGuildRequired: !!v.discordGuildRequired,
+    };
+  } else if (section === 'footer') {
+    // Liens internes (/…), ancres (#…), e-mails (mailto:) ou adresses https.
+    const href = (x: unknown) => {
+      const h = str(x, 300);
+      return /^\/(?!\/)\S*$/.test(h) || /^#\S*$/.test(h) || /^mailto:\S+$/i.test(h) || /^https?:\/\/\S+$/i.test(h) ? h : null;
+    };
+    const logo = image(v.logo);
+    if (logo === null) return NextResponse.json({ error: 'Logo invalide.' }, { status: 400 });
+    const columns = (Array.isArray(v.columns) ? v.columns : []).slice(0, FOOTER_LIMITS.columns).map((c: any) => ({
+      title: str(c?.title, 40),
+      links: (Array.isArray(c?.links) ? c.links : []).slice(0, FOOTER_LIMITS.links).map((l: any) => ({ label: str(l?.label, 60), href: href(l?.href) })),
+    }));
+    for (const c of columns) {
+      if (!c.title) return NextResponse.json({ error: 'Chaque catégorie doit avoir un titre.' }, { status: 400 });
+      for (const l of c.links) {
+        if (!l.label) return NextResponse.json({ error: `Un lien de « ${c.title} » n'a pas de texte.` }, { status: 400 });
+        if (l.href === null || !l.href) return NextResponse.json({ error: `Le lien « ${l.label} » est invalide (/page, https://…, mailto:…).` }, { status: 400 });
+      }
+    }
+    s.footer = {
+      brandName: str(v.brandName, 60),
+      logo: logo || '',
+      copyright: str(v.copyright, 160),
+      disclaimer: str(v.disclaimer, 400),
+      columns,
+      bigText: str(v.bigText, 16),
+      showBigText: !!v.showBigText,
+    };
+  } else if (section === 'tickets') {
+    const statuses: TicketStatus[] = [];
+    for (const x of (Array.isArray(v.statuses) ? v.statuses : []).slice(0, 15)) {
+      const label = str(x?.label, 40);
+      if (!label) continue;
+      let id = str(x?.id, 40).toLowerCase().replace(/[^a-z0-9_]/g, '_') || label.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+      while (statuses.some((y) => y.id === id)) id += '_2';
+      statuses.push({ id, label, tone: STATUS_TONES.includes(x?.tone) ? x.tone : 'zinc', important: !!x?.important });
+    }
+    if (!statuses.length) return NextResponse.json({ error: 'Au moins un statut.' }, { status: 400 });
+    const sound = str(v.sound, 200);
+    if (sound && !/^\/sounds\/[a-z0-9-]+\.wav$/.test(sound) && !/^\/api\/uploads\/[a-f0-9]{32}\.(mp3|wav|ogg)$/.test(sound)) {
+      return NextResponse.json({ error: 'Son invalide.' }, { status: 400 });
+    }
+    const dp = v.defaultPerms || {};
+    s.tickets = {
+      statuses,
+      defaultStatus: statuses.some((x) => x.id === v.defaultStatus) ? v.defaultStatus : statuses[0].id,
+      defaultPerms: { replies: !!dp.replies, images: !!dp.images, files: !!dp.files, downloads: !!dp.downloads, membersCanReply: !!dp.membersCanReply },
+      sound,
+      soundVolume: Math.min(1, Math.max(0, Number(v.soundVolume) || 0)),
+      maxFileMb: Math.min(90, Math.max(1, Math.round(Number(v.maxFileMb) || 25))),
+    };
   } else {
     return NextResponse.json({ error: 'Section inconnue' }, { status: 400 });
   }

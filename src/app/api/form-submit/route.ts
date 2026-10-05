@@ -3,20 +3,23 @@ import crypto from 'crypto';
 import { getRequests, saveRequests, ClientRequest } from '../../../lib/requestsDb';
 import { getSessionUser } from '../../../lib/session';
 import { getSettings } from '../../../lib/settings';
-import { MAX_ATTACHMENTS, uploadExists } from '../../../lib/uploads';
+import { isImageUpload, MAX_ATTACHMENTS, uploadExists } from '../../../lib/uploads';
+import { isActive } from '../../../lib/usersDb';
+import { newTicket } from '../../../lib/tickets';
 
 const clean = (v: unknown, max: number) => String(v ?? '').trim().slice(0, max);
 
 // Demande de projet sur mesure, envoyée par l'assistant pas à pas de /custom-orders.
-// Réservée aux comptes connectés avec Discord : l'atelier répond ensuite depuis le site.
+// Réservée aux comptes actifs (e-mail vérifié ou Discord, et @nom choisi) : un ticket privé est créé
+// automatiquement et sert ensuite d'espace de conversation et de suivi.
 export async function POST(req: NextRequest) {
   try {
     const user = getSessionUser(req);
-    if (!user || !user.discordId) {
-      return NextResponse.json(
-        { error: 'Please sign in with Discord before sending a custom request.' },
-        { status: 401 }
-      );
+    if (!user) {
+      return NextResponse.json({ error: 'Please sign in before sending a custom request.' }, { status: 401 });
+    }
+    if (!isActive(user)) {
+      return NextResponse.json({ error: 'Please finish setting up your account (email and username) first.' }, { status: 403 });
     }
 
     const settings = getSettings();
@@ -36,7 +39,7 @@ export async function POST(req: NextRequest) {
     const budget = wiz.askBudget ? clean(body.budget, 30) : '';
     // Images envoyées au préalable via /api/uploads : on ne garde que des noms valides et existants.
     const attachments = wiz.askImages && Array.isArray(body.attachments)
-      ? [...new Set<string>(body.attachments.map((a: unknown) => String(a)))].filter(uploadExists).slice(0, Math.min(MAX_ATTACHMENTS, wiz.maxImages))
+      ? [...new Set<string>(body.attachments.map((a: unknown) => String(a)))].filter((n) => isImageUpload(n) && uploadExists(n)).slice(0, Math.min(MAX_ATTACHMENTS, wiz.maxImages))
       : [];
 
     if (!category || vision.length < wiz.minBriefLength) {
@@ -53,6 +56,7 @@ export async function POST(req: NextRequest) {
       id: inquiryId,
       pseudo: user.pseudo,
       discordId: user.discordId,
+      userId: user.id,
       subject: `[Custom Project] ${[category, budget, duration].filter(Boolean).join(' · ')}`,
       createdAt: now.toISOString(),
       expiresAt: new Date(now.getTime() + 72 * 60 * 60 * 1000).toISOString(),
@@ -63,8 +67,8 @@ export async function POST(req: NextRequest) {
           id: `msg_${Date.now()}_1`,
           sender: 'client',
           text: [
-            `CLIENT: ${user.pseudo}`,
-            `DISCORD: ${user.discordTag || user.pseudo} (${user.discordId})`,
+            `CLIENT: ${user.pseudo}${user.username ? ` (@${user.username})` : ''}`,
+            user.discordId ? `DISCORD: ${user.discordTag || user.pseudo} (${user.discordId})` : null,
             `PIECE: ${category}`,
             pedTarget ? `WORN BY: ${pedTarget}` : null,
             duration ? `DELIVERY: ${duration}` : null,
@@ -80,6 +84,8 @@ export async function POST(req: NextRequest) {
         },
       ],
     };
+
+    newRequest.ticket = newTicket(newRequest, user, user.pseudo);
 
     const requests = getRequests();
     requests.unshift(newRequest);

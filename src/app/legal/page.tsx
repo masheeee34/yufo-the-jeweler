@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { AuthProvider } from '../../lib/authContext';
 import { CartProvider } from '../../lib/cartContext';
 import { AlexMossHeader } from '../../components/AlexMossHeader';
-import { SiteFooter } from '../../components/SiteFooter';
+import { Footer as SiteFooter } from '../../components/Footer';
 import { DISCORD_INVITE } from '../../components/CustomProjectWizard';
 
 // Mentions légales, conditions de vente, remboursements et confidentialité.

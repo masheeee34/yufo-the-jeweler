@@ -17,6 +17,7 @@ export interface SessionRecord {
   expiresAt: string;
   ip?: string;
   userAgent?: string;
+  remember?: boolean; // « Rester connecté » : session longue et prolongée à chaque visite
 }
 
 const hash = (token: string) => crypto.createHash('sha256').update(token).digest('hex');
@@ -45,18 +46,22 @@ function sessionDays(): number {
   return d >= 1 && d <= 90 ? d : 30;
 }
 
-export function createSession(req: NextRequest, res: NextResponse, userId: string) {
+// Sans « Rester connecté », la session dure tant que le navigateur reste ouvert (12 h d'inactivité au plus).
+const SHORT_MS = 12 * 3600000;
+const lifetimeMs = (remember?: boolean) => (remember === false ? SHORT_MS : sessionDays() * 86400000);
+
+export function createSession(req: NextRequest, res: NextResponse, userId: string, remember = true) {
   const token = crypto.randomBytes(32).toString('hex');
   const now = new Date();
-  const days = sessionDays();
   const record: SessionRecord = {
     id: hash(token),
     userId,
     createdAt: now.toISOString(),
     lastSeenAt: now.toISOString(),
-    expiresAt: new Date(now.getTime() + days * 86400000).toISOString(),
+    expiresAt: new Date(now.getTime() + lifetimeMs(remember)).toISOString(),
     ip: clientIp(req),
     userAgent: (req.headers.get('user-agent') || '').slice(0, 200),
+    remember,
   };
   saveSessions([...getSessions(), record]);
   res.cookies.set(SESSION_COOKIE, token, {
@@ -64,7 +69,7 @@ export function createSession(req: NextRequest, res: NextResponse, userId: strin
     secure: isHttps(req),
     sameSite: 'lax',
     path: '/',
-    maxAge: days * 86400,
+    ...(remember ? { maxAge: sessionDays() * 86400 } : {}),
   });
   res.cookies.delete(LEGACY_COOKIE);
 }
@@ -76,10 +81,12 @@ export function getSessionRecord(req: NextRequest): SessionRecord | null {
   const list = getSessions();
   const found = list.find((s) => s.id === id);
   if (!found) return null;
-  // Mise à jour de « vu pour la dernière fois » au plus toutes les 5 minutes.
+  // Mise à jour de « vu pour la dernière fois » au plus toutes les 5 minutes ; la session est prolongée
+  // à chaque visite, pour ne pas avoir à remettre son mot de passe tant qu'on revient régulièrement.
   if (Date.now() - new Date(found.lastSeenAt).getTime() > 5 * 60000) {
     found.lastSeenAt = new Date().toISOString();
     found.ip = clientIp(req) || found.ip;
+    found.expiresAt = new Date(Date.now() + lifetimeMs(found.remember)).toISOString();
     saveSessions(list);
   }
   return found;
@@ -90,11 +97,26 @@ export function getSessionUser(req: NextRequest): UserProfile | null {
   return s ? getUserById(s.userId) : null;
 }
 
+// Prolonge aussi le cookie (appelé par /api/auth/me à chaque visite) pour une session « Rester connecté ».
+export function refreshSessionCookie(req: NextRequest, res: NextResponse) {
+  const token = req.cookies.get(SESSION_COOKIE)?.value;
+  const s = getSessionRecord(req);
+  if (!token || !s || s.remember === false) return;
+  res.cookies.set(SESSION_COOKIE, token, { httpOnly: true, secure: isHttps(req), sameSite: 'lax', path: '/', maxAge: sessionDays() * 86400 });
+}
+
 export function destroySession(req: NextRequest, res: NextResponse) {
   const token = req.cookies.get(SESSION_COOKIE)?.value;
   if (token) saveSessions(getSessions().filter((s) => s.id !== hash(token)));
   res.cookies.delete(SESSION_COOKIE);
   res.cookies.delete(LEGACY_COOKIE);
+}
+
+// Identifiant public d'une session (pour la liste des appareils), dérivé de son empreinte.
+export const sessionPublicId = (s: SessionRecord) => s.id.slice(0, 16);
+
+export function getUserSessions(userId: string): SessionRecord[] {
+  return getSessions().filter((s) => s.userId === userId);
 }
 
 export function revokeSessions(predicate: (s: SessionRecord) => boolean): number {

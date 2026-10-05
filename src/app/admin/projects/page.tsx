@@ -218,7 +218,13 @@ function ProjectDetail({ p, patch, action, reloadNotes, onDeleted }: {
         {p.references.length > 0 && (
           <div className="mt-3"><p className="text-[11px] text-zinc-500 mb-1">Références ({p.references.length})</p><MessageAttachments names={p.references} className="max-w-[420px] grid-cols-4" /></div>
         )}
-        <p className="text-[11px] text-zinc-600 mt-2">{p.id} · reçu le {fullDate(p.createdAt)}</p>
+        <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
+          <p className="text-[11px] text-zinc-600">{p.id} · reçu le {fullDate(p.createdAt)}</p>
+          {/* Conversation, membres, statut et permissions se gèrent dans le ticket (bouton Manage). */}
+          <a href={`/tickets/${p.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 h-9 px-3.5 rounded-xl bg-white text-zinc-950 text-[12px] font-semibold hover:bg-zinc-200">
+            Ouvrir le ticket
+          </a>
+        </div>
       </section>
 
       {/* Suivi */}

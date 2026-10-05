@@ -84,7 +84,7 @@ export const WIZARD_TEXT_GROUPS = [
     fields: [
       { key: 'sentTitle', label: 'Titre' },
       { key: 'sentText', label: 'Texte', long: true },
-      { key: 'sentButton', label: 'Bouton vers le compte' },
+      { key: 'sentButton', label: 'Bouton vers le ticket' },
     ],
   },
   {
@@ -135,10 +135,10 @@ export const DEFAULT_WIZARD_TEXTS: Record<WizardTextKey, string> = {
   sendButton: 'Send request',
   sendingButton: 'Sending...',
   sentTitle: 'Request sent',
-  sentText: 'We will reply to you directly on the site. You can follow the conversation from your account.',
-  sentButton: 'View my requests',
-  signInTitle: 'Sign in with Discord to start',
-  signInText: 'Every custom request is tied to your Discord account, so we can reply to you on the site and on our server.',
+  sentText: 'A private ticket is now open with the atelier: follow your project and talk with us there.',
+  sentButton: 'Open my ticket',
+  signInTitle: 'Sign in to start',
+  signInText: 'Every custom request opens a private ticket in your account, so you can follow your project and talk with the atelier.',
   signInButton: 'Continue with Discord',
   closedTitle: 'Custom orders are closed for now',
   closedText: 'Our jewelers are fully booked. Join our Discord to be the first to know when new slots open.',

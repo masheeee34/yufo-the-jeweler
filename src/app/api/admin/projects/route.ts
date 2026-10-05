@@ -8,6 +8,7 @@ import { projectInfo, requestKind } from '@/lib/commerce';
 import { MAX_ATTACHMENTS, UPLOADS_DIR, uploadExists, uploadReferenced } from '@/lib/uploads';
 import { getGrants, ownerOf, saveGrants } from '@/lib/filesDb';
 import { getCustomerRecords, notifyCustomer, saveCustomerRecord } from '@/lib/customersDb';
+import { purgeRequest } from '@/lib/purge';
 
 export const dynamic = 'force-dynamic';
 
@@ -155,32 +156,8 @@ export async function DELETE(req: NextRequest) {
   const r = requests.find((x) => x.id === id && requestKind(x) === 'project');
   if (!r) return NextResponse.json({ error: 'Projet introuvable' }, { status: 404 });
 
-  const images = new Set<string>([...r.messages.flatMap((m) => m.attachments || []), ...(r.project?.previews || []).map((p) => p.file)]);
-  // Tickets reliés au projet : ils restent, mais ne pointent plus vers lui.
-  for (const x of requests) if (x.linkedId === id) delete x.linkedId;
-  saveRequests(requests.filter((x) => x !== r));
-
-  const grants = getGrants();
-  const keptGrants = grants.filter((g) => g.refId !== id);
-  if (keptGrants.length !== grants.length) saveGrants(keptGrants);
-
-  const records = getCustomerRecords();
-  for (const [userId, rec] of Object.entries(records)) {
-    const kept = (rec.notifications || []).filter((n) => !`${n.title} ${n.text || ''} ${n.href || ''}`.includes(id));
-    if (kept.length !== (rec.notifications || []).length) saveCustomerRecord(userId, { ...rec, notifications: kept });
-  }
-
-  writeJson('audit.json', getAudit().filter((e) => e.target !== id));
-
-  let removedImages = 0;
-  for (const name of images) {
-    if (!uploadExists(name) || uploadReferenced(name)) continue;
-    try {
-      fs.unlinkSync(path.join(UPLOADS_DIR, name));
-      removedImages++;
-    } catch {}
-  }
+  const result = purgeRequest(id)!;
 
   audit(ctx, 'project.purge', { target: id, detail: 'Projet supprimé définitivement' });
-  return NextResponse.json({ success: true, removedImages, removedGrants: grants.length - keptGrants.length });
+  return NextResponse.json({ success: true, ...result });
 }

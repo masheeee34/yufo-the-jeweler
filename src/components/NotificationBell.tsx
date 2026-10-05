@@ -3,10 +3,11 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../lib/authContext';
 import { ScratchCard } from './ScratchCard';
+import { playSound } from './tickets/TicketBits';
 
 interface Notif {
   id: string;
-  type: 'discount' | 'order' | 'project' | 'files';
+  type: 'discount' | 'order' | 'project' | 'files' | 'ticket';
   title: string;
   text: string;
   href?: string;
@@ -80,18 +81,33 @@ export function NotificationBell() {
   const [scratch, setScratch] = useState<Notif | null>(null);
   const [revealed, setRevealed] = useState<number | null>(null);
   const root = useRef<HTMLDivElement>(null);
+  const known = useRef<Set<string> | null>(null);
+  const sound = useRef<{ url: string; volume: number }>({ url: '', volume: 0.6 });
+
+  useEffect(() => {
+    fetch('/api/settings')
+      .then((r) => r.json())
+      .then((d) => d.tickets && (sound.current = { url: d.tickets.sound || '', volume: Number(d.tickets.soundVolume) || 0.6 }))
+      .catch(() => {});
+  }, []);
 
   const load = useCallback(async () => {
     try {
-      const d = await fetch('/api/me/notifications').then((r) => r.json());
-      setItems(d.notifications || []);
+      const d = await fetch('/api/me/notifications', { cache: 'no-store' }).then((r) => r.json());
+      const list: Notif[] = d.notifications || [];
+      // Son à l'arrivée d'une nouvelle notification (pas au premier chargement de la page).
+      // Le ticket ouvert à l'écran joue déjà son propre son : pas de double alerte.
+      const here = window.location.pathname;
+      if (known.current && list.some((n) => !n.read && !known.current!.has(n.id) && n.href !== here)) playSound(sound.current.url, sound.current.volume);
+      known.current = new Set(list.map((n) => n.id));
+      setItems(list);
     } catch {}
   }, []);
 
   useEffect(() => {
     if (!user) return;
     load();
-    const t = setInterval(load, 60000);
+    const t = setInterval(() => document.visibilityState === 'visible' && load(), 20000);
     return () => clearInterval(t);
   }, [user, load]);
 

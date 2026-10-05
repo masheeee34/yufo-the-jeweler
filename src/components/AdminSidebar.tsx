@@ -24,7 +24,10 @@ import {
   IconSearch,
   IconSettings,
   IconForms,
+  IconLayoutBottombar,
+  IconMessages,
   IconShieldLock,
+  IconTicket,
   IconSparkles,
   IconStar,
   IconUserCircle,
@@ -94,6 +97,7 @@ export const AdminSidebar: React.FC<{ mobileOpen: boolean; onCloseMobile: () => 
     { label: 'Orders', icon: IconPackage, href: '/admin/orders', perm: 'orders', badge: me.counts.orders },
     { label: 'Custom projects', icon: IconSparkles, href: '/admin/projects', perm: 'projects', badge: me.counts.projects, badgeTone: 'amber' },
     { label: 'Messages', icon: IconMail, href: '/admin/messages', perm: 'messages', badge: me.counts.messages, badgeTone: 'amber' },
+    { label: 'Tickets', icon: IconMessages, href: '/tickets', perm: 'messages' },
     { label: 'Notifications', icon: IconBell, href: '/admin/notifications', perm: 'dashboard', badge: me.counts.notifications },
   ];
 
@@ -130,6 +134,8 @@ export const AdminSidebar: React.FC<{ mobileOpen: boolean; onCloseMobile: () => 
         { label: 'Website', icon: IconWorld, href: '/admin/settings/website', perm: 'settings' },
         { label: 'Custom orders', icon: IconSparkles, href: '/admin/settings/custom-orders', perm: 'settings' },
         { label: 'Custom form', icon: IconForms, href: '/admin/settings/custom-form', perm: 'settings' },
+        { label: 'Tickets', icon: IconTicket, href: '/admin/settings/tickets', perm: 'settings' },
+        { label: 'Footer', icon: IconLayoutBottombar, href: '/admin/settings/footer', perm: 'settings' },
         { label: 'Payments', icon: IconCreditCard, href: '/admin/settings/payments', perm: 'payments' },
         { label: 'Security', icon: IconShieldLock, href: '/admin/settings/security', perm: 'security' },
       ],

@@ -2,7 +2,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { SiteFooter } from '../../components/SiteFooter';
+import { Footer as SiteFooter } from '../../components/Footer';
 import Image from 'next/image';
 import Link from 'next/link';
 import { CartProvider, useCart } from '../../lib/cartContext';

@@ -13,8 +13,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Cart is empty' }, { status: 400 });
     }
 
-    if (!email) {
-      return NextResponse.json({ error: 'Delivery email is required' }, { status: 400 });
+    // Achat possible sans compte (invité) : seule une adresse e-mail est demandée.
+    const deliveryEmail = String(email ?? '').trim().toLowerCase().slice(0, 200);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(deliveryEmail)) {
+      return NextResponse.json({ error: 'Please enter a valid delivery email.' }, { status: 400 });
     }
 
     const orderId = `YUF-ORD-${Math.floor(100000 + Math.random() * 900000)}`;
@@ -50,12 +52,15 @@ export async function POST(req: NextRequest) {
       id: orderId,
       pseudo: clientPseudo,
       discordId: sessionUser?.discordId,
+      // Client connecté : la commande va directement dans sa bibliothèque. Invité : rattachée plus tard
+      // à son compte s'il en crée un avec cette adresse (une fois l'adresse vérifiée).
+      userId: sessionUser?.id,
       // Le paiement n'est pas encore encaissé automatiquement : l'atelier le marque « Paid » depuis Orders.
       order: {
         items: orderItems,
         total,
         ...(discountPercent ? { subtotal, discountPercent } : {}),
-        email: String(email).slice(0, 200),
+        email: deliveryEmail,
         paymentMethod: paymentMethod ? String(paymentMethod).slice(0, 80) : undefined,
         status: 'pending',
         paymentStatus: 'unpaid',
@@ -87,6 +92,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({
       success: true,
+      guest: !sessionUser,
       orderId,
       licenseKey: `CFX-ESCROW-${Math.random().toString(36).substring(2, 10).toUpperCase()}`,
       order: orderRecord,

@@ -3,6 +3,8 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useAdmin } from './AdminContext';
 import type { WizardSettings } from '@/lib/wizardDefaults';
+import type { FooterSettings } from '@/lib/footerDefaults';
+import type { TicketSettings } from '@/lib/ticketDefaults';
 
 export interface Settings {
   site: { title: string; description: string; favicon: string };
@@ -18,19 +20,21 @@ export interface Settings {
   };
   wizard: WizardSettings;
   payments: { currency: 'USD' | 'EUR' | 'GBP'; methods: string[]; stripePublishableKey: string; stripeEnabled: boolean };
-  security: { sessionDays: number };
+  security: { sessionDays: number; discordGuildRequired: boolean };
+  footer: FooterSettings;
+  tickets: TicketSettings;
 }
 
 // Chargement et enregistrement d'une section des réglages.
 export function useSettings<K extends keyof Settings>(section: K) {
   const { api, toast } = useAdmin();
   const [values, setValues] = useState<Settings[K] | null>(null);
-  const [meta, setMeta] = useState<{ stripeSecretConfigured: boolean }>({ stripeSecretConfigured: false });
+  const [meta, setMeta] = useState<{ stripeSecretConfigured: boolean; mailConfigured: boolean }>({ stripeSecretConfigured: false, mailConfigured: false });
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
-    const d = await api<{ settings: Settings; stripeSecretConfigured: boolean }>('/api/admin/settings');
-    if (d) { setValues(d.settings[section]); setMeta({ stripeSecretConfigured: d.stripeSecretConfigured }); }
+    const d = await api<{ settings: Settings; stripeSecretConfigured: boolean; mailConfigured: boolean }>('/api/admin/settings');
+    if (d) { setValues(d.settings[section]); setMeta({ stripeSecretConfigured: d.stripeSecretConfigured, mailConfigured: !!d.mailConfigured }); }
   }, [api, section]);
   useEffect(() => { load(); }, [load]);
 

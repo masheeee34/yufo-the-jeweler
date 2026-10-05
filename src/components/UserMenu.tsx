@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import {
+  IconBooks,
   IconCirclePlus,
   IconMessageCircle,
   IconSettings,
@@ -25,16 +26,17 @@ export function discordAvatarUrl(user: Pick<UserProfile, 'discordId' | 'avatar'>
   }
 }
 
-export const UserAvatar: React.FC<{ user: UserProfile; size: number; className?: string }> = ({ user, size, className = '' }) => {
+// Photo du client (envoyée sur le site), sinon sa photo Discord, sinon la première lettre de son pseudo.
+export const UserAvatar: React.FC<{ user: Pick<UserProfile, 'pseudo' | 'discordId' | 'avatar' | 'avatarUrl'>; size: number; className?: string }> = ({ user, size, className = '' }) => {
   const [failed, setFailed] = useState(false);
-  const src = discordAvatarUrl(user, size * 2);
+  const src = user.avatarUrl || discordAvatarUrl(user, size * 2);
   if (!src || failed) {
     return (
       <span
         className={`rounded-full bg-white/10 text-white font-semibold flex items-center justify-center ${className}`}
         style={{ width: size, height: size, fontSize: size * 0.42 }}
       >
-        {user.pseudo.charAt(0).toUpperCase()}
+        {(user.pseudo || '?').trim().charAt(0).toUpperCase() || '?'}
       </span>
     );
   }
@@ -93,8 +95,8 @@ export const UserMenu: React.FC<{ onOpenAccount?: () => void }> = ({ onOpenAccou
   }
 
   const close = () => setOpen(false);
-  // Nom d'affichage Discord + vrai @ Discord (comme sur Discord).
-  const handle = user.discordTag ? `@${user.discordTag}` : '';
+  // Nom affiché + @nom d'utilisateur du site.
+  const handle = user.username ? `@${user.username}` : user.discordTag ? `@${user.discordTag}` : '';
 
   return (
     <div ref={rootRef} className="relative">
@@ -119,8 +121,11 @@ export const UserMenu: React.FC<{ onOpenAccount?: () => void }> = ({ onOpenAccou
           </div>
 
           <div className="pb-2">
-            <Link href="/account?tab=commissions" onClick={close} className={rowClass} role="menuitem">
-              <IconMessageCircle size={18} stroke={1.6} className="text-[#a1a1a6]" />My requests
+            <Link href="/tickets" onClick={close} className={rowClass} role="menuitem">
+              <IconMessageCircle size={18} stroke={1.6} className="text-[#a1a1a6]" />My tickets
+            </Link>
+            <Link href="/account?tab=library" onClick={close} className={rowClass} role="menuitem">
+              <IconBooks size={18} stroke={1.6} className="text-[#a1a1a6]" />Library
             </Link>
             <Link href="/custom-orders" onClick={close} className={rowClass} role="menuitem">
               <IconCirclePlus size={18} stroke={1.6} className="text-[#a1a1a6]" />Request a piece

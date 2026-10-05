@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
-import { SiteFooter } from '../../components/SiteFooter';
+import { Footer as SiteFooter } from '../../components/Footer';
 import { LoaderOne } from '../../components/LoaderOne';
 import Link from 'next/link';
 import Image from 'next/image';

@@ -65,13 +65,11 @@ export const AccountModal: React.FC<AccountModalProps> = ({
 
         {!user ? (
           /* ============================================================ */
-          /* 1. DISCORD MANDATORY LOGIN VIEW                               */
+          /* 1. CONNEXION : E-MAIL OU DISCORD (FACULTATIF)                 */
           /* ============================================================ */
           <div className="space-y-6 pt-2 text-center">
-            <div className="w-14 h-14 rounded-2xl bg-zinc-900 border border-white/10 flex items-center justify-center mx-auto text-white shadow-inner">
-              <svg className="w-7 h-7 fill-white" viewBox="0 0 24 24">
-                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-              </svg>
+            <div className="relative w-14 h-14 rounded-2xl overflow-hidden border border-white/10 bg-black mx-auto">
+              <Image src="/assets/brand/yufo_icon_black.png" alt="YUFO" fill className="object-cover" />
             </div>
 
             <div className="space-y-2">
@@ -79,47 +77,34 @@ export const AccountModal: React.FC<AccountModalProps> = ({
                 Atelier Client Authentication
               </span>
               <h2 className="text-2xl font-semibold text-white tracking-tight">
-                Connect with Discord
+                Sign in to your account
               </h2>
               <p className="text-xs sm:text-sm text-zinc-400 max-w-md mx-auto leading-relaxed">
-                Access to custom 3D commissions, live orders, and private concierge is authenticated directly via your Discord profile.
+                Find your purchases, your library and your custom projects. Discord is optional.
               </p>
             </div>
 
-            {/* Atelier Requirement Box */}
-            <div className="p-4 bg-zinc-900/60 border border-white/5 rounded-2xl text-left space-y-2">
-              <div className="flex items-center gap-2 text-xs font-semibold text-white">
-                <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
-                <span>Guild Membership Required</span>
-              </div>
-              <p className="text-xs text-zinc-400 leading-relaxed">
-                You must be an active member of the official <span className="text-white font-medium">Yufo The Jeweler</span> Discord community to commission custom jewelry or access existing orders.
-              </p>
-            </div>
-
-            {/* Action Buttons */}
+            {/* Discord est facultatif : e-mail, Discord, ou achat en invité. */}
             <div className="space-y-3 pt-2">
+              <Link
+                href="/account"
+                onClick={onClose}
+                className="w-full h-12 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs rounded-full flex items-center justify-center gap-2.5 transition-all shadow-lg group"
+              >
+                <span>Sign in with email</span>
+                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
+              </Link>
               <button
                 type="button"
-                onClick={startDiscordAuth}
-                className="w-full h-12 bg-white hover:bg-zinc-200 text-zinc-950 font-semibold text-xs rounded-full flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-lg group"
+                onClick={() => startDiscordAuth()}
+                className="w-full h-11 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 text-white font-medium text-xs rounded-full flex items-center justify-center gap-2 transition-colors cursor-pointer"
               >
-                <svg className="w-4 h-4 fill-zinc-950" viewBox="0 0 24 24">
-                  <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028 14.09 14.09 0 0 0 1.226-1.994.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.929 1.793 8.18 1.793 12.061 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.894.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.028zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z" />
-                </svg>
                 <span>Continue with Discord</span>
-                <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform" />
               </button>
-
-              <a
-                href="https://discord.gg/yufothejeweler"
-                target="_blank"
-                rel="noreferrer"
-                className="w-full h-11 bg-zinc-900/80 hover:bg-zinc-800 border border-white/10 text-white font-medium text-xs rounded-full flex items-center justify-center gap-2 transition-colors"
-              >
-                <span>Join Yufo Discord server</span>
-                <ExternalLink className="w-3 h-3 text-zinc-400" />
-              </a>
+              <Link href="/account?signup=1" onClick={onClose} className="block text-center text-xs text-zinc-400 hover:text-white pt-1">
+                New here? Create an account
+              </Link>
+              <p className="text-[11px] text-zinc-500 text-center">No account needed to buy: you can check out as a guest.</p>
             </div>
           </div>
         ) : (

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { IconDeviceDesktop, IconDeviceMobile, IconLogout } from '@tabler/icons-react';
 import { useAdmin } from '@/components/admin/AdminContext';
-import { Badge, Button, Card, CardTitle, Empty, Field, Input, Loading, PageHeader, Tabs, timeAgo } from '@/components/admin/ui';
+import { Badge, Button, Card, CardTitle, Empty, Field, Input, Loading, PageHeader, Tabs, timeAgo, Toggle } from '@/components/admin/ui';
 import { useSettings } from '@/components/admin/useSettings';
 
 interface Sess { id: string; pseudo: string; team: boolean; createdAt: string; lastSeenAt: string; expiresAt: string; ip?: string; userAgent?: string; current: boolean }
@@ -17,7 +17,7 @@ const device = (ua = '') => {
 
 export default function SecuritySettingsPage() {
   const { api, toast, confirm } = useAdmin();
-  const { values, setValues, save, saving } = useSettings('security');
+  const { values, setValues, save, saving, meta } = useSettings('security');
   const [sessions, setSessions] = useState<Sess[] | null>(null);
   const [who, setWho] = useState<'team' | 'customers'>('team');
 
@@ -43,15 +43,28 @@ export default function SecuritySettingsPage() {
           <CardTitle>Règles</CardTitle>
           <div className="px-5 pb-5 space-y-4">
             <ul className="text-[13px] text-zinc-300 space-y-1.5 list-disc pl-5">
+              <li>Clients : compte e-mail (adresse vérifiée) ou Discord, au choix. L’achat est aussi possible en invité.</li>
               <li>Connexion au back-office uniquement avec un compte Discord membre de l’équipe.</li>
               <li>Sessions stockées sur le serveur : un cookie volé ou forgé ne suffit plus, et une session peut être coupée à distance.</li>
               <li>Rôles et permissions dans Team › Members ; toutes les actions sensibles sont dans Activity logs.</li>
             </ul>
             {values ? (
-              <div className="flex flex-col sm:flex-row sm:items-end gap-3">
-                <Field label="Durée d’une session (jours)" hint="S’applique aux prochaines connexions (1 à 90).">
-                  <Input type="number" min={1} max={90} value={values.sessionDays} onChange={(e) => setValues({ sessionDays: Number(e.target.value) })} className="sm:w-40" />
-                </Field>
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-end gap-3">
+                  <Field label="Durée d’une session (jours)" hint="« Rester connecté » : la session est prolongée à chaque visite (1 à 90 jours).">
+                    <Input type="number" min={1} max={90} value={values.sessionDays} onChange={(e) => setValues({ ...values, sessionDays: Number(e.target.value) })} className="sm:w-40" />
+                  </Field>
+                </div>
+                <Toggle
+                  checked={!!values.discordGuildRequired}
+                  onChange={(v) => setValues({ ...values, discordGuildRequired: v })}
+                  label="Connexion Discord réservée aux membres du serveur Discord (les comptes e-mail ne sont pas concernés)"
+                />
+                <p className={`text-[12px] ${meta.mailConfigured ? 'text-emerald-300' : 'text-amber-300'}`}>
+                  {meta.mailConfigured
+                    ? 'Envoi des e-mails configuré : les inscriptions par e-mail sont ouvertes.'
+                    : 'Envoi des e-mails non configuré : l’inscription par e-mail reste fermée (Discord et achat invité fonctionnent).'}
+                </p>
                 <Button variant="primary" disabled={saving} onClick={() => save()}>Enregistrer</Button>
               </div>
             ) : null}

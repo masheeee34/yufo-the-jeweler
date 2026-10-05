@@ -1,5 +1,5 @@
 import { ClientRequest, OrderData, ProjectData } from './requestsDb';
-import { getUsers, UserProfile } from './usersDb';
+import { getUsers, isRealEmail, UserProfile } from './usersDb';
 
 export const isPaid = (s?: string) => s === 'paid' || s === 'partial';
 
@@ -63,18 +63,26 @@ export function awaitingReply(r: ClientRequest): boolean {
   return !!last && last.sender === 'client' && r.status !== 'closed';
 }
 
-// Rattache une demande à un compte client (Discord en priorité, puis pseudo).
-export function belongsTo(r: ClientRequest, u: Pick<UserProfile, 'discordId' | 'pseudo' | 'email'>): boolean {
-  if (r.discordId && u.discordId) return r.discordId === u.discordId;
-  const text = (r.messages[0]?.text || '').toLowerCase();
+// Rattache une demande à un compte client : compte enregistré sur la demande, puis Discord,
+// puis adresse e-mail de la commande (uniquement si le client a vérifié cette adresse).
+export function belongsTo(r: ClientRequest, u: Pick<UserProfile, 'id' | 'discordId' | 'email' | 'emailVerified'>): boolean {
+  if (r.userId) return r.userId === u.id;
+  if (r.discordId && u.discordId && r.discordId === u.discordId) return true;
+  const text = r.messages[0]?.text || '';
   if (u.discordId && text.includes(`(${u.discordId})`)) return true;
-  if (u.email && !u.email.endsWith('@discord.user') && text.includes(u.email.toLowerCase())) return true;
-  return r.pseudo.toLowerCase() === u.pseudo.toLowerCase();
+  if (u.emailVerified && isRealEmail(u.email)) {
+    const mine = u.email.trim().toLowerCase();
+    const orderEmail = (r.order?.email || field(text, 'EMAIL') || '').trim().toLowerCase();
+    if (orderEmail && orderEmail === mine) return true;
+  }
+  return false;
 }
 
 export interface CustomerSummary {
   id: string;
   pseudo: string;
+  username?: string;
+  emailVerified?: boolean;
   email?: string;
   discordId?: string;
   discordTag?: string;
@@ -101,6 +109,8 @@ export function customerSummaries(requests: ClientRequest[]): CustomerSummary[] 
     return {
       id: u.id,
       pseudo: u.pseudo,
+      username: u.username,
+      emailVerified: !!u.emailVerified,
       email: u.email?.endsWith('@discord.user') ? undefined : u.email,
       discordId: u.discordId,
       discordTag: u.discordTag,
